@@ -53,4 +53,21 @@ class SuperAdminPumkMonitoringTest extends TestCase
         $pumk = User::factory()->create(['role' => 'pumk_admin', 'is_admin' => true, 'is_active' => true]);
         $this->actingAs($pumk, 'web')->get(route('superadmin.pumk.index'))->assertForbidden();
     }
+
+    public function test_bri_tab_opens_when_no_bri_years_are_available(): void
+    {
+        $super = User::factory()->create(['role' => 'super_admin', 'is_admin' => true, 'is_active' => true, 'must_change_password' => false]);
+        $briUrl = route('superadmin.pumk.index', ['tab' => 'bri']);
+
+        $this->actingAs($super, 'superadmin')
+            ->get(route('superadmin.pumk.index'))
+            ->assertOk()
+            ->assertSee('href="'.$briUrl.'"', false)
+            ->assertDontSee('tab=bri&amp;tahun=', false);
+
+        $this->get($briUrl)
+            ->assertOk()
+            ->assertSee('PUMK BRI')
+            ->assertSee('Belum tersedia');
+    }
 }

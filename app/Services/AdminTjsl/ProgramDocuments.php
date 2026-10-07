@@ -4,6 +4,7 @@ namespace App\Services\AdminTjsl;
 
 use App\Models\Program;
 use App\Models\ProgramDocument;
+use App\Services\ProgramDocumentResponses;
 use App\Services\SubmissionNotificationService;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\RedirectResponse;
@@ -14,7 +15,10 @@ use Throwable;
 
 final class ProgramDocuments
 {
-    public function __construct(private readonly ProgramWorkflow $workflow) {}
+    public function __construct(
+        private readonly ProgramWorkflow $workflow,
+        private readonly ProgramDocumentResponses $responses,
+    ) {}
 
     public function uploadBast(Request $request, Program $program): RedirectResponse
     {
@@ -119,6 +123,13 @@ final class ProgramDocuments
         abort_unless($disk->exists($document->file_path), 404);
 
         return $disk->download($document->file_path, $document->nama_dokumen);
+    }
+
+    public function viewDocument(Request $request, ProgramDocument $document)
+    {
+        $this->workflow->own($request, $document->program);
+
+        return $this->responses->view($document);
     }
 
     public function destroyDocument(Request $request, ProgramDocument $document): RedirectResponse

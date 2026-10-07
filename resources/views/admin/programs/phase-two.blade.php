@@ -89,8 +89,9 @@
                         >
                         <div class="document-actions">
                             @if($bastDocument)
-                                <a href="{{ route('admin.program-documents.download', $bastDocument) }}" class="action-view">Lihat</a>
-                            @endif
+                            <a href="{{ route('admin.program-documents.view', $bastDocument) }}" class="action-view" target="_blank" rel="noopener">Lihat</a>
+                            <a href="{{ route('admin.program-documents.download', $bastDocument) }}" class="action-view">Download</a>
+                        @endif
                             <button
                                 type="button"
                                 class="action-upload"
@@ -141,7 +142,8 @@
                     <input value="{{ $bastDocument->nama_dokumen }}" readonly>
                     <span></span>
                     <div class="document-actions">
-                        <a href="{{ route('admin.program-documents.download', $bastDocument) }}" class="action-view">Lihat BAST</a>
+                        <a href="{{ route('admin.program-documents.view', $bastDocument) }}" class="action-view" target="_blank" rel="noopener">Lihat BAST</a>
+                        <a href="{{ route('admin.program-documents.download', $bastDocument) }}" class="action-view">Download</a>
                     </div>
                 </div>
             @endif

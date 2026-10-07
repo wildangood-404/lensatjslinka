@@ -7,7 +7,7 @@
 
         <nav class="monitor-tabs" aria-label="Jenis data PUMK">
             <a @class(['active' => $tab === 'internal']) href="{{ route('superadmin.pumk.index', ['tab' => 'internal']) }}">PUMK Internal / Kartu Piutang</a>
-            <a @class(['active' => $tab === 'bri']) href="{{ route('superadmin.pumk.index', ['tab' => 'bri', 'tahun' => $year]) }}">PUMK BRI</a>
+            <a @class(['active' => $tab === 'bri']) href="{{ route('superadmin.pumk.index', ['tab' => 'bri'] + ($years->isNotEmpty() ? ['tahun' => $year] : [])) }}">PUMK BRI</a>
         </nav>
 
         @if($tab === 'internal')

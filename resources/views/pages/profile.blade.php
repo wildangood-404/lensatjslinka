@@ -25,6 +25,10 @@
             .public-profile-grid{display:grid;max-width:780px;grid-template-columns:1fr 1fr;gap:26px 40px}
             .public-profile-field label,.public-password-field label{display:block;margin-bottom:4px;font-size:15px}
             .public-profile-field input,.public-password-field input{box-sizing:border-box;width:100%;height:37px;border:1px solid #9ca3af;border-radius:7px;background:#fff;padding:4px 8px;color:#111827;font:inherit;font-size:15px}
+            .public-password-input-wrap{display:flex;align-items:center;gap:8px}
+            .public-password-input-wrap input{min-width:0;flex:1}
+            .public-password-toggle{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border:1px solid #9ca3af;border-radius:7px;background:#fff;padding:7px;color:#111827;cursor:pointer}
+            .public-password-toggle svg{width:19px;height:19px}
             .public-profile-password{margin-top:68px}
             .public-password-preview{max-width:370px}
             .public-password-form{display:none}
@@ -106,6 +110,7 @@
                         @foreach([
                             'nama_depan' => 'Nama Depan',
                             'nama_belakang' => 'Nama Belakang',
+                            'username' => 'Username',
                             'email' => 'Email',
                             'no_telephone' => 'No Telephone',
                             'jabatan' => 'Jabatan',
@@ -161,39 +166,39 @@
                         <div class="public-password-fields">
                             <div class="public-password-field">
                                 <label for="public-current-password">Password Lama</label>
-                                <input
-                                    id="public-current-password"
-                                    type="password"
-                                    name="current_password"
-                                    required
-                                    autocomplete="current-password"
-                                >
+                                <div class="public-password-input-wrap">
+                                    <input id="public-current-password" type="password" name="current_password" required autocomplete="current-password">
+                                    <button type="button" class="public-password-toggle" data-password-toggle aria-label="Lihat password" title="Lihat password" aria-pressed="false">
+                                        <svg data-password-eye viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.75"/></svg>
+                                        <svg data-password-eye-off viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.9 10.9 0 0 1 12 5c6 0 9.5 7 9.5 7a16 16 0 0 1-3.2 4.1M6.6 6.6C4.4 8.1 2.9 10.1 2 12c0 0 3.5 7 10 7 1 0 2-.2 2.9-.6"/></svg>
+                                    </button>
+                                </div>
                                 @error('current_password')
                                     <p class="public-profile-error">{{ $message }}</p>
                                 @enderror
                             </div>
                             <div class="public-password-field">
                                 <label for="public-new-password">Password Baru</label>
-                                <input
-                                    id="public-new-password"
-                                    type="password"
-                                    name="password"
-                                    required
-                                    autocomplete="new-password"
-                                >
+                                <div class="public-password-input-wrap">
+                                    <input id="public-new-password" type="password" name="password" required autocomplete="new-password">
+                                    <button type="button" class="public-password-toggle" data-password-toggle aria-label="Lihat password" title="Lihat password" aria-pressed="false">
+                                        <svg data-password-eye viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.75"/></svg>
+                                        <svg data-password-eye-off viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.9 10.9 0 0 1 12 5c6 0 9.5 7 9.5 7a16 16 0 0 1-3.2 4.1M6.6 6.6C4.4 8.1 2.9 10.1 2 12c0 0 3.5 7 10 7 1 0 2-.2 2.9-.6"/></svg>
+                                    </button>
+                                </div>
                                 @error('password')
                                     <p class="public-profile-error">{{ $message }}</p>
                                 @enderror
                             </div>
                             <div class="public-password-field">
                                 <label for="public-password-confirmation">Konfirmasi Password Baru</label>
-                                <input
-                                    id="public-password-confirmation"
-                                    type="password"
-                                    name="password_confirmation"
-                                    required
-                                    autocomplete="new-password"
-                                >
+                                <div class="public-password-input-wrap">
+                                    <input id="public-password-confirmation" type="password" name="password_confirmation" required autocomplete="new-password">
+                                    <button type="button" class="public-password-toggle" data-password-toggle aria-label="Lihat password" title="Lihat password" aria-pressed="false">
+                                        <svg data-password-eye viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.75"/></svg>
+                                        <svg data-password-eye-off viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.9 10.9 0 0 1 12 5c6 0 9.5 7 9.5 7a16 16 0 0 1-3.2 4.1M6.6 6.6C4.4 8.1 2.9 10.1 2 12c0 0 3.5 7 10 7 1 0 2-.2 2.9-.6"/></svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -244,5 +249,18 @@
                 section.classList.remove('is-changing');
             });
         })();
+
+        document.querySelectorAll('[data-password-toggle]').forEach(function(button){
+            button.addEventListener('click',function(){
+                var input=button.parentElement.querySelector('input');
+                var isVisible=input.type==='text';
+                input.type=isVisible?'password':'text';
+                button.querySelector('[data-password-eye]').hidden=!isVisible;
+                button.querySelector('[data-password-eye-off]').hidden=isVisible;
+                button.setAttribute('aria-label',isVisible?'Lihat password':'Sembunyikan password');
+                button.setAttribute('title',isVisible?'Lihat password':'Sembunyikan password');
+                button.setAttribute('aria-pressed',String(!isVisible));
+            });
+        });
     </script>
 </x-layouts.app>

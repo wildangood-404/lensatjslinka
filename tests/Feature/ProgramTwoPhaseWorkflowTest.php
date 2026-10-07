@@ -82,6 +82,10 @@ class ProgramTwoPhaseWorkflowTest extends TestCase
             ->assertDontSee('Fase 1')
             ->assertDontSee('name="dokumen_f"', false);
 
+        $document = $program->documents()->firstOrFail();
+        $detail->assertSee(route('admin.program-documents.view', $document), false)
+            ->assertSee(route('admin.program-documents.download', $document), false);
+
         $this->get(route('admin.programs.phase2', $program))
             ->assertForbidden();
 
@@ -95,6 +99,56 @@ class ProgramTwoPhaseWorkflowTest extends TestCase
             ->assertSee('name="keyword"', false)
             ->assertDontSee('Dokumen Mandatory')
             ->assertDontSee('Dokumen Pelengkap');
+    }
+
+    public function test_program_documents_can_be_previewed_inline_by_admin_and_super_admin_and_downloaded_separately(): void
+    {
+        $program = $this->submitPhaseOne('Program Pratinjau Dokumen');
+        $document = $program->documents()->firstOrFail();
+
+        $adminPreview = $this->actingAs($this->admin, 'admin')
+            ->get(route('admin.program-documents.view', $document));
+        $adminPreview->assertOk()
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private');
+        $this->assertStringStartsWith('inline;', $adminPreview->headers->get('Content-Disposition'));
+
+        $adminDownload = $this->get(route('admin.program-documents.download', $document));
+        $adminDownload->assertOk();
+        $this->assertStringStartsWith('attachment;', $adminDownload->headers->get('Content-Disposition'));
+
+        $superAdminPage = $this->actingAs($this->superAdmin, 'superadmin')
+            ->get(route('superadmin.programs.show', $program));
+        $superAdminPage->assertOk()
+            ->assertSee(route('superadmin.program-documents.view', $document), false)
+            ->assertSee(route('superadmin.program-documents.download', $document), false);
+
+        $superAdminPreview = $this->get(route('superadmin.program-documents.view', $document));
+        $superAdminPreview->assertOk();
+        $this->assertStringStartsWith('inline;', $superAdminPreview->headers->get('Content-Disposition'));
+    }
+
+    public function test_admin_cannot_preview_another_admins_program_document(): void
+    {
+        $otherAdmin = User::factory()->create([
+            'role' => 'admin',
+            'is_admin' => true,
+            'is_active' => true,
+            'must_change_password' => false,
+        ]);
+
+        $this->actingAs($otherAdmin, 'admin')
+            ->post(route('admin.programs.store'), $this->phaseOnePayload('Program Milik Admin Lain'))
+            ->assertSessionHasNoErrors();
+
+        $document = Program::where('nama_program', 'Program Milik Admin Lain')
+            ->firstOrFail()
+            ->documents()
+            ->firstOrFail();
+
+        $this->actingAs($this->admin, 'admin')
+            ->get(route('admin.program-documents.view', $document))
+            ->assertForbidden();
     }
 
     public function test_rejected_phase_one_program_leaves_active_lists_and_public_overview(): void

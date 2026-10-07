@@ -7,6 +7,7 @@ use App\Models\Pillar;
 use App\Models\Program;
 use App\Models\ProgramDocument;
 use App\Models\StatusLog;
+use App\Services\ProgramDocumentResponses;
 use App\Support\TjslSubmissionStatusFilter;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\RedirectResponse;
@@ -142,6 +143,11 @@ class SuperAdminProgramController extends Controller
         abort_unless($disk->exists($document->file_path), 404);
 
         return $disk->download($document->file_path, $document->nama_dokumen);
+    }
+
+    public function viewDocument(ProgramDocument $document, ProgramDocumentResponses $responses)
+    {
+        return $responses->view($document);
     }
 
     private function log(

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
@@ -20,6 +21,7 @@ class PublicProfileController extends Controller
         $data = $request->validate([
             'nama_depan' => ['required', 'string', 'max:100'],
             'nama_belakang' => ['required', 'string', 'max:100'],
+            'username' => ['required', 'string', 'max:100', Rule::unique('users', 'username')->ignore($request->user()->id)],
             'email' => ['required', 'email', 'unique:users,email,'.$request->user()->id],
             'no_telephone' => ['nullable', 'string', 'max:30'],
             'jabatan' => ['nullable', 'string', 'max:100'],

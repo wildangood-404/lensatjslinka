@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AdminProfileController extends Controller
@@ -15,7 +16,7 @@ class AdminProfileController extends Controller
 
     public function update(Request $r): RedirectResponse
     {
-        $data = $r->validate(['nama_depan' => ['required', 'string', 'max:100'], 'nama_belakang' => ['required', 'string', 'max:100'], 'email' => ['required', 'email', 'unique:users,email,'.$r->user()->id], 'no_telephone' => ['nullable', 'string', 'max:30'], 'jabatan' => ['nullable', 'string', 'max:100'], 'alamat' => ['nullable', 'string'], 'avatar' => ['nullable', 'image', 'max:2048']]);
+        $data = $r->validate(['nama_depan' => ['required', 'string', 'max:100'], 'nama_belakang' => ['required', 'string', 'max:100'], 'username' => ['required', 'string', 'max:100', Rule::unique('users', 'username')->ignore($r->user()->id)], 'email' => ['required', 'email', 'unique:users,email,'.$r->user()->id], 'no_telephone' => ['nullable', 'string', 'max:30'], 'jabatan' => ['nullable', 'string', 'max:100'], 'alamat' => ['nullable', 'string'], 'avatar' => ['nullable', 'image', 'max:2048']]);
         if ($r->hasFile('avatar')) {
             $data['avatar_path'] = $r->file('avatar')->store('avatars', 'public');
         }unset($data['avatar']);

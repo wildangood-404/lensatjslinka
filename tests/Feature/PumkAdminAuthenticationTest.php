@@ -125,6 +125,8 @@ class PumkAdminAuthenticationTest extends TestCase
             ->assertSee('Informasi Pribadi')
             ->assertSee('data-profile-form', false)
             ->assertSee('data-password-section', false)
+            ->assertSee('Username')
+            ->assertSee('data-password-toggle', false)
             ->assertSee('Password Lama')
             ->assertSee('Password Baru')
             ->assertSee('Konfirmasi Password Baru');
@@ -135,6 +137,7 @@ class PumkAdminAuthenticationTest extends TestCase
         $this->put(route('pumk-admin.profile.update'), [
             'nama_depan' => 'Admin',
             'nama_belakang' => 'PUMK',
+            'username' => 'profile-pumk-updated',
             'email' => 'admin.pumk.profile@example.test',
             'no_telephone' => '081234567890',
             'jabatan' => 'Admin PUMK',
@@ -143,6 +146,7 @@ class PumkAdminAuthenticationTest extends TestCase
 
         $pumkAdmin->refresh();
         $this->assertSame('Admin PUMK', $pumkAdmin->name);
+        $this->assertSame('profile-pumk-updated', $pumkAdmin->username);
         $this->assertSame('admin.pumk.profile@example.test', $pumkAdmin->email);
 
         $this->get(route('pumk-admin.home'))

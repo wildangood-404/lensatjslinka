@@ -20,6 +20,7 @@ class PublicAuthenticationTest extends TestCase
         $this->get(route('login'))
             ->assertOk()
             ->assertSee('class="public-login-card"', false)
+            ->assertSee('data-password-toggle', false)
             ->assertSee('videos/waterfall-bg.mp4')
             ->assertSee('action="'.route('login.store').'"', false);
     }
@@ -70,11 +71,14 @@ class PublicAuthenticationTest extends TestCase
             ->assertSee('class="public-profile-card"', false)
             ->assertSee('User Admin')
             ->assertSee('Informasi Pribadi')
+            ->assertSee('Username')
+            ->assertSee('data-password-toggle', false)
             ->assertSee('Ubah Password');
 
         $this->put(route('public.profile.update'), [
             'nama_depan' => 'User',
             'nama_belakang' => 'Publik',
+            'username' => 'public-admin-updated',
             'email' => 'public@example.com',
             'no_telephone' => '08123456789',
             'jabatan' => 'Karyawan',
@@ -85,8 +89,26 @@ class PublicAuthenticationTest extends TestCase
         $this->assertDatabaseHas('users', [
             'id' => $admin->id,
             'name' => 'User Publik',
+            'username' => 'public-admin-updated',
             'email' => 'public@example.com',
             'role' => 'admin',
         ]);
+    }
+
+    public function test_public_profile_rejects_a_username_owned_by_another_user(): void
+    {
+        $user = User::factory()->create(['username' => 'profile-owner']);
+        User::factory()->create(['username' => 'already-taken']);
+
+        $this->actingAs($user, 'web')
+            ->put(route('public.profile.update'), [
+                'nama_depan' => 'Profile',
+                'nama_belakang' => 'Owner',
+                'username' => 'already-taken',
+                'email' => $user->email,
+            ])
+            ->assertSessionHasErrors('username');
+
+        $this->assertSame('profile-owner', $user->fresh()->username);
     }
 }

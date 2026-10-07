@@ -69,6 +69,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::redirect('/', '/admin/home')->name('dashboard');
         Route::get('/home', AdminDashboardController::class)->name('home');
+        Route::get('/program-documents/{document}/lihat', [AdminProgramController::class, 'viewDocument'])->name('program-documents.view');
         Route::get('/program-documents/{document}', [AdminProgramController::class, 'downloadDocument'])->name('program-documents.download');
         Route::delete('/program-documents/{document}', [AdminProgramController::class, 'destroyDocument'])->name('program-documents.destroy');
         Route::post('/program-tjsl/{program}/cancel', [AdminProgramController::class, 'cancel'])->name('programs.cancel');
@@ -181,6 +182,7 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
 
         Route::post('/program-tjsl/{program}/approve', [SuperAdminProgramController::class, 'approve'])->name('programs.approve');
         Route::post('/program-tjsl/{program}/reject', [SuperAdminProgramController::class, 'reject'])->name('programs.reject');
+        Route::get('/program-documents/{document}/lihat', [SuperAdminProgramController::class, 'viewDocument'])->name('program-documents.view');
         Route::get('/program-documents/{document}', [SuperAdminProgramController::class, 'downloadDocument'])->name('program-documents.download');
         Route::resource('program-tjsl', SuperAdminProgramController::class)->parameters(['program-tjsl' => 'program'])->names('programs')->only(['index', 'show']);
 

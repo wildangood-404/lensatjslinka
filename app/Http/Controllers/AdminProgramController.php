@@ -69,6 +69,11 @@ class AdminProgramController extends Controller
         return $this->documents->downloadDocument($request, $document);
     }
 
+    public function viewDocument(Request $request, ProgramDocument $document)
+    {
+        return $this->documents->viewDocument($request, $document);
+    }
+
     public function destroyDocument(Request $request, ProgramDocument $document): RedirectResponse
     {
         return $this->documents->destroyDocument($request, $document);

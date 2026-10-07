@@ -71,8 +71,23 @@
                         <span></span>
                     @endif
                     <div class="document-actions">
-                        @if($existing)<a href="{{ route($routePrefix.'.program-documents.download',$existing) }}" class="action-view">Lihat</a>@endif
+                        @if($existing)
+                            <a href="{{ route($routePrefix.'.program-documents.view', $existing) }}" class="action-view" target="_blank" rel="noopener">Lihat</a>
+                            <a href="{{ route($routePrefix.'.program-documents.download', $existing) }}" class="action-view">Download</a>
+                        @endif
                         @if($editable && $existing)<button type="button" class="action-change" onclick="this.closest('.document-row').querySelector('input[type=file]').click()">Ganti</button><button type="submit" form="delete-program-doc-{{ $existing->id }}" class="action-delete">Hapus</button>@elseif($editable)<button type="button" class="action-upload" onclick="this.closest('.document-row').querySelector('input[type=file]').click()">Unggah</button>@endif
+                    </div>
+                </div>
+            @endforeach
+            @foreach($program->documents?->where('document_type', 'lainnya') ?? collect() as $otherDocument)
+                <div class="reference-row document-row">
+                    <span>Dokumen Lainnya</span>
+                    <input value="{{ $otherDocument->nama_dokumen }}" readonly>
+                    <span></span>
+                    <div class="document-actions">
+                        <a href="{{ route($routePrefix.'.program-documents.view', $otherDocument) }}" class="action-view" target="_blank" rel="noopener">Lihat</a>
+                        <a href="{{ route($routePrefix.'.program-documents.download', $otherDocument) }}" class="action-view">Download</a>
+                        @if($editable)<button type="submit" form="delete-program-doc-{{ $otherDocument->id }}" class="action-delete">Hapus</button>@endif
                     </div>
                 </div>
             @endforeach
@@ -106,7 +121,8 @@
                         >
                         <div class="document-actions">
                             @if($bastDocument)
-                                <a href="{{ route('admin.program-documents.download', $bastDocument) }}" class="action-view">Lihat BAST Ditolak</a>
+                                <a href="{{ route('admin.program-documents.view', $bastDocument) }}" class="action-view" target="_blank" rel="noopener">Lihat BAST Ditolak</a>
+                                <a href="{{ route('admin.program-documents.download', $bastDocument) }}" class="action-view">Download</a>
                             @endif
                             <button type="submit" form="bast-upload-form" class="action-upload">
                                 {{ $bastDocument ? 'Unggah Ulang BAST' : 'Unggah BAST' }}
@@ -120,7 +136,8 @@
                     <p class="phase-document-note">Dokumen BAST sudah diunggah dan menunggu review Super Admin.</p>
                     @if($bastDocument)
                         <div class="document-actions">
-                            <a href="{{ route($routePrefix.'.program-documents.download', $bastDocument) }}" class="action-view">Lihat BAST</a>
+                            <a href="{{ route($routePrefix.'.program-documents.view', $bastDocument) }}" class="action-view" target="_blank" rel="noopener">Lihat BAST</a>
+                            <a href="{{ route($routePrefix.'.program-documents.download', $bastDocument) }}" class="action-view">Download</a>
                         </div>
                     @endif
                 @elseif($program->status === 'completed')
@@ -128,7 +145,8 @@
                     <p class="phase-document-note">Dokumen BAST telah disetujui dan bersifat final.</p>
                     @if($bastDocument)
                         <div class="document-actions">
-                            <a href="{{ route($routePrefix.'.program-documents.download', $bastDocument) }}" class="action-view">Lihat BAST</a>
+                            <a href="{{ route($routePrefix.'.program-documents.view', $bastDocument) }}" class="action-view" target="_blank" rel="noopener">Lihat BAST</a>
+                            <a href="{{ route($routePrefix.'.program-documents.download', $bastDocument) }}" class="action-view">Download</a>
                         </div>
                     @endif
                 @endif

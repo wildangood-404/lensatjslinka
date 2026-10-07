@@ -13,6 +13,8 @@ class SuperAdminUserController extends Controller
 {
     private const MANAGED_ROLES = ['admin', 'pumk_admin'];
 
+    private const CREATABLE_ROLES = ['admin', 'pumk_admin', 'super_admin'];
+
     private const ROLE_LABELS = [
         'admin' => 'Admin TJSL',
         'pumk_admin' => 'Admin PUMK',
@@ -34,7 +36,7 @@ class SuperAdminUserController extends Controller
     {
         return view('superadmin.users.form', [
             'account' => new User,
-            'roleLabels' => self::ROLE_LABELS,
+            'roleLabels' => self::ROLE_LABELS + ['super_admin' => 'Super Admin'],
         ]);
     }
 
@@ -48,7 +50,11 @@ class SuperAdminUserController extends Controller
         $data['must_change_password'] = true;
         User::create($data);
 
-        return redirect()->route('superadmin.users.index')->with('success', 'Akun Admin berhasil dibuat.');
+        $message = $data['role'] === 'super_admin'
+            ? 'Akun Super Admin berhasil dibuat.'
+            : 'Akun Admin berhasil dibuat.';
+
+        return redirect()->route('superadmin.users.index')->with('success', $message);
     }
 
     public function edit(User $user): View
@@ -83,7 +89,7 @@ class SuperAdminUserController extends Controller
     private function data(Request $r, ?User $user = null): array
     {
         return $r->validate([
-            'role' => ['required', Rule::in(self::MANAGED_ROLES)],
+            'role' => ['required', Rule::in($user ? self::MANAGED_ROLES : self::CREATABLE_ROLES)],
             'nama_depan' => ['required', 'string', 'max:100'],
             'nama_belakang' => ['required', 'string', 'max:100'],
             'username' => ['required', 'string', 'max:100', Rule::unique('users')->ignore($user?->id)],

@@ -30,6 +30,21 @@
             background: #fff;
             font: inherit;
         }
+        .account-password-control { display: flex; align-items: center; gap: 8px; }
+        .account-password-control input { min-width: 0; flex: 1; }
+        .account-password-toggle {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            place-items: center;
+            border: 1px solid #9ca3af;
+            border-radius: 7px;
+            background: #fff;
+            color: #111827;
+            cursor: pointer;
+        }
+        .account-password-toggle svg { width: 20px; height: 20px; }
         .account-field.full { grid-column: 1 / -1; }
         .account-help {
             display: block;
@@ -83,7 +98,7 @@
                     @endforeach
                 </select>
                 <small class="account-help">
-                    Admin TJSL mengakses dashboard pengelolaan Program dan Bantuan TJSL. Admin PUMK mengakses dashboard Kartu Piutang PUMK.
+                    Admin TJSL mengakses dashboard pengelolaan Program dan Bantuan TJSL. Admin PUMK mengakses dashboard Kartu Piutang PUMK. Super Admin mengelola seluruh akun dan persetujuan.
                 </small>
             </label>
 
@@ -113,11 +128,32 @@
             @unless($account->exists)
                 <label class="account-field full">
                     <span>Password Sementara</span>
-                    <input type="password" name="password" required minlength="8">
+                    <span class="account-password-control">
+                        <input type="password" name="password" required minlength="8" autocomplete="new-password">
+                        <button type="button" class="account-password-toggle" data-password-toggle aria-label="Lihat password sementara" title="Lihat password sementara" aria-pressed="false">
+                            <svg data-password-eye viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.75"/></svg>
+                            <svg data-password-eye-off viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.9 10.9 0 0 1 12 5c6 0 9.5 7 9.5 7a16 16 0 0 1-3.2 4.1M6.6 6.6C4.4 8.1 2.9 10.1 2 12c0 0 3.5 7 10 7 1 0 2-.2 2.9-.6"/></svg>
+                        </button>
+                    </span>
                 </label>
             @endunless
         </div>
 
         <button class="account-save" type="submit">Simpan</button>
     </form>
+    <script>
+        document.querySelectorAll('[data-password-toggle]').forEach(function(button){
+            button.addEventListener('click',function(){
+                var input=button.parentElement.querySelector('input');
+                var isVisible=input.type==='text';
+                input.type=isVisible?'password':'text';
+                button.querySelector('[data-password-eye]').hidden=!isVisible;
+                button.querySelector('[data-password-eye-off]').hidden=isVisible;
+                var label=isVisible?'Lihat password sementara':'Sembunyikan password sementara';
+                button.setAttribute('aria-label',label);
+                button.setAttribute('title',label);
+                button.setAttribute('aria-pressed',String(!isVisible));
+            });
+        });
+    </script>
 </x-layouts.admin>

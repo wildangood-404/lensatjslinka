@@ -47,7 +47,7 @@ class SuperAdminUserManagementTest extends TestCase
         $this->assertTrue(Hash::check('PasswordPumk2026', $account->password));
     }
 
-    public function test_create_and_edit_forms_offer_only_the_two_managed_account_types(): void
+    public function test_create_form_offers_super_admin_but_edit_form_only_offers_managed_account_types(): void
     {
         $superAdmin = $this->superAdmin();
         $pumkAdmin = $this->adminAccount('pumk_admin', 'pumk-form');
@@ -57,11 +57,15 @@ class SuperAdminUserManagementTest extends TestCase
             ->assertOk()
             ->assertSee('value="admin"', false)
             ->assertSee('value="pumk_admin"', false)
-            ->assertDontSee('value="super_admin"', false);
+            ->assertSee('value="super_admin"', false)
+            ->assertSee('Password Sementara')
+            ->assertSee('data-password-toggle', false)
+            ->assertSee('data-password-eye-off', false);
 
         $this->get(route('superadmin.users.edit', $pumkAdmin))
             ->assertOk()
-            ->assertSee('value="pumk_admin" selected', false);
+            ->assertSee('value="pumk_admin" selected', false)
+            ->assertDontSee('value="super_admin"', false);
     }
 
     public function test_super_admin_can_edit_and_deactivate_a_pumk_admin_account(): void
@@ -108,18 +112,24 @@ class SuperAdminUserManagementTest extends TestCase
         $this->assertSame('pumk_admin', $admin->fresh()->role);
     }
 
-    public function test_role_validation_rejects_privilege_escalation_to_super_admin(): void
+    public function test_super_admin_can_create_another_super_admin_account(): void
     {
         $this->actingAs($this->superAdmin(), 'superadmin')
             ->post(route('superadmin.users.store'), $this->payload([
                 'role' => 'super_admin',
-                'username' => 'super-tidak-sah',
-                'email' => 'super-tidak-sah@example.test',
-                'password' => 'PasswordTidakSah2026',
+                'username' => 'super-admin-baru',
+                'email' => 'super-admin-baru@example.test',
+                'password' => 'PasswordSuperAdmin2026',
             ]))
-            ->assertSessionHasErrors('role');
+            ->assertRedirect(route('superadmin.users.index'))
+            ->assertSessionHas('success', 'Akun Super Admin berhasil dibuat.');
 
-        $this->assertDatabaseMissing('users', ['username' => 'super-tidak-sah']);
+        $newSuperAdmin = User::where('username', 'super-admin-baru')->firstOrFail();
+        $this->assertSame('super_admin', $newSuperAdmin->role);
+        $this->assertTrue($newSuperAdmin->is_admin);
+        $this->assertTrue($newSuperAdmin->is_active);
+        $this->assertTrue($newSuperAdmin->must_change_password);
+        $this->assertTrue(Hash::check('PasswordSuperAdmin2026', $newSuperAdmin->password));
     }
 
     public function test_user_management_routes_cannot_modify_a_super_admin_account(): void
