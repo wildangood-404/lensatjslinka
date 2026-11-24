@@ -6,7 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProgramDocument extends Model
 {
-    protected $fillable = ['program_id', 'document_type', 'nama_dokumen', 'file_path', 'uploaded_at'];
+    protected $fillable = [
+        'program_id',
+        'document_type',
+        'kategori_tahap',
+        'nama_dokumen',
+        'nama_file_asli',
+        'file_path',
+        'uploaded_at',
+    ];
 
     protected function casts(): array
     {

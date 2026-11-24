@@ -45,7 +45,7 @@ class PumkMitraManagementTest extends TestCase
 
         $this->get(route('pumk-admin.mitra.index', [
             'q' => 'Filter Sesuai',
-            'wilayah' => $wilayah->id,
+            'wilayah' => $wilayah->nama,
             'sektor' => $sektor->id,
             'kolektibilitas' => 'lancar',
         ]))
@@ -66,13 +66,14 @@ class PumkMitraManagementTest extends TestCase
         ])->assertRedirect(route('pumk-admin.home'));
         $this->assertAuthenticatedAs($admin, 'web');
         $this->assertAuthenticatedAs($admin, 'pumk');
-        [$wilayah, $sektor] = $this->references();
+        [, $sektor] = $this->references();
 
         $response = $this->post(route('pumk-admin.mitra.store'), [
             'nama_mitra' => 'Mitra Baru PUMK',
             'jenis_usaha' => 'Perdagangan eceran',
             'sektor_usaha_id' => $sektor->id,
-            'wilayah_id' => $wilayah->id,
+            'kabupaten_kota' => 'Kota Madiun',
+            'provinsi' => 'Jawa Timur',
             'alamat' => 'Alamat pengujian',
             'nama_pemilik' => 'Pemilik Pengujian',
             'no_ktp' => '1234567890123456',
@@ -98,6 +99,9 @@ class PumkMitraManagementTest extends TestCase
 
         $this->assertSame($admin->id, $mitra->created_by);
         $this->assertSame('1234567890123456', $mitra->no_ktp_encrypted);
+        $this->assertSame('Kota Madiun', $mitra->kabupaten_kota);
+        $this->assertSame('Jawa Timur', $mitra->provinsi);
+        $this->assertSame('Kota Madiun, Jawa Timur', $mitra->wilayah_sumber);
         $this->assertDatabaseHas('pumk_pinjaman', [
             'mitra_id' => $mitra->id,
             'spj_awal' => 'SPJ/UJI/001',
@@ -114,6 +118,33 @@ class PumkMitraManagementTest extends TestCase
         $this->assertNotSame('9876543210', $raw->no_rekening_encrypted);
     }
 
+    public function test_manual_regency_and_province_are_shown_and_filterable(): void
+    {
+        $this->actingAs($this->pumkAdmin(), 'pumk');
+        [, $sektor] = $this->references();
+        $mitra = PumkMitra::create([
+            'nama_mitra' => 'Mitra Lokasi Manual',
+            'kabupaten_kota' => 'Kabupaten Magetan',
+            'provinsi' => 'Jawa Timur',
+            'wilayah_sumber' => 'Kabupaten Magetan, Jawa Timur',
+            'sektor_usaha_id' => $sektor->id,
+            'source_key' => hash('sha256', 'Mitra Lokasi Manual'),
+            'is_active' => true,
+        ]);
+        $this->loan($mitra, 'lancar', 100000);
+
+        $this->get(route('pumk-admin.mitra.index', ['wilayah' => 'Magetan']))
+            ->assertOk()
+            ->assertSee('Kabupaten Magetan, Jawa Timur')
+            ->assertSee('Mitra Lokasi Manual');
+
+        $this->get(route('pumk-admin.mitra.edit', [$mitra, 'pinjaman' => $mitra->pinjaman()->value('id')]))
+            ->assertOk()
+            ->assertSee('value="Kabupaten Magetan"', false)
+            ->assertSee('value="Jawa Timur"', false)
+            ->assertDontSee('name="wilayah_id"', false);
+    }
+
     public function test_pumk_admin_can_update_mitra_and_loan_source_data(): void
     {
         $this->actingAs($this->pumkAdmin(), 'pumk');
@@ -124,7 +155,8 @@ class PumkMitraManagementTest extends TestCase
         $this->put(route('pumk-admin.mitra.update', $mitra), [
             'nama_mitra' => 'Nama Diperbarui',
             'sektor_usaha_id' => $sektor->id,
-            'wilayah_id' => $wilayah->id,
+            'kabupaten_kota' => 'Kabupaten Magetan',
+            'provinsi' => 'Jawa Timur',
             'is_active' => '1',
             'spj_awal' => 'SPJ-BARU',
             'pinjaman_pokok' => 1500000,
@@ -134,6 +166,9 @@ class PumkMitraManagementTest extends TestCase
             ->assertRedirect(route('pumk-admin.mitra.show', $mitra));
 
         $this->assertSame('Nama Diperbarui', $mitra->fresh()->nama_mitra);
+        $this->assertSame('Kabupaten Magetan', $mitra->fresh()->kabupaten_kota);
+        $this->assertSame('Jawa Timur', $mitra->fresh()->provinsi);
+        $this->assertNull($mitra->fresh()->wilayah_id);
         $this->assertSame('SPJ-BARU', $pinjaman->fresh()->spj_awal);
         $this->assertSame('1650000.00', $pinjaman->fresh()->total_pinjaman);
     }

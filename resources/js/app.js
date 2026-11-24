@@ -1,3 +1,8 @@
+import Alpine from 'alpinejs';
+
+window.Alpine = Alpine;
+Alpine.start();
+
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-pillar-hero]').forEach((hero) => {
         const slides = JSON.parse(hero.dataset.slides || '[]');

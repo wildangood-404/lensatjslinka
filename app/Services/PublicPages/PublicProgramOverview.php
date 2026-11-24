@@ -2,7 +2,6 @@
 
 namespace App\Services\PublicPages;
 
-use App\Models\BantuanCsr;
 use App\Models\Pillar;
 use App\Models\Program;
 use App\Services\ProgramMonitoringService;
@@ -36,24 +35,7 @@ class PublicProgramOverview
                 return $this->programMonitoring->internal($program, $detailUrl);
             });
 
-        $csrPrograms = BantuanCsr::with([
-            'pillar',
-            'documents',
-            'creator',
-            'fase1Reviewer',
-            'fase2Reviewer',
-        ])
-            ->whereIn('status', BantuanCsr::OVERVIEW_STATUSES)
-            ->when(
-                $keyword !== '',
-                fn ($query) => $query->where('nama_program_bantuan', 'like', "%{$keyword}%"),
-            )
-            ->latest()
-            ->get()
-            ->map(fn (BantuanCsr $program): array => $this->programMonitoring->csr($program));
-
         return $internalPrograms
-            ->concat($csrPrograms)
             ->sortByDesc('sort_timestamp')
             ->values()
             ->all();
@@ -105,33 +87,6 @@ class PublicProgramOverview
             ->get()
             ->toArray();
 
-        $csr = BantuanCsr::query()
-            ->whereIn('status', BantuanCsr::OVERVIEW_STATUSES)
-            ->when(
-                $keyword !== '',
-                fn ($query) => $query->where('nama_program_bantuan', 'like', "%{$keyword}%"),
-            )
-            ->select([
-                'id',
-                'pillar_id',
-                'nama_program_bantuan',
-                'status',
-                'fase1_reviewed_at',
-                'fase2_reviewed_at',
-                'updated_at',
-            ])
-            ->withCount([
-                'documents as document_a_count' => fn ($query) => $query
-                    ->whereIn('document_type', ['A', 'proposal_pengajuan_program']),
-                'documents as document_b_count' => fn ($query) => $query
-                    ->whereIn('document_type', ['B', 'kelengkapan_survei']),
-                'documents as document_f_count' => fn ($query) => $query
-                    ->whereIn('document_type', ['F', 'bast']),
-            ])
-            ->orderBy('id')
-            ->get()
-            ->toArray();
-
         $pillars = Pillar::query()
             ->orderBy('id')
             ->get(['id', 'name', 'slug', 'color_hex', 'updated_at'])
@@ -141,7 +96,6 @@ class PublicProgramOverview
             'keyword' => $keyword,
             'year' => $year,
             'internal' => $internal,
-            'csr' => $csr,
             'pillars' => $pillars,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION));
     }

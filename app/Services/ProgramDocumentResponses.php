@@ -9,6 +9,22 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProgramDocumentResponses
 {
+    public function download(ProgramDocument $document): StreamedResponse
+    {
+        /** @var FilesystemAdapter $disk */
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($document->file_path), 404);
+
+        $extension = strtolower(pathinfo($document->file_path, PATHINFO_EXTENSION));
+        $headers = $extension === 'pdf' ? ['Content-Type' => 'application/pdf'] : [];
+
+        return $disk->download(
+            $document->file_path,
+            $this->filename($document),
+            $headers,
+        );
+    }
+
     public function view(ProgramDocument $document): StreamedResponse
     {
         /** @var FilesystemAdapter $disk */
@@ -26,7 +42,11 @@ class ProgramDocumentResponses
 
     private function filename(ProgramDocument $document): string
     {
-        $name = trim(str_replace(['/', '\\', '"', "\r", "\n"], '-', $document->nama_dokumen));
+        $name = trim(str_replace(
+            ['/', '\\', '"', "\r", "\n"],
+            '-',
+            $document->nama_file_asli ?: $document->nama_dokumen,
+        ));
         $name = $name !== '' ? $name : basename($document->file_path);
         $extension = pathinfo($document->file_path, PATHINFO_EXTENSION);
 

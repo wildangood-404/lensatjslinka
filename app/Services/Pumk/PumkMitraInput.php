@@ -3,7 +3,6 @@
 namespace App\Services\Pumk;
 
 use App\Models\PumkSektorUsaha;
-use App\Models\PumkWilayah;
 use Illuminate\Http\Request;
 
 class PumkMitraInput
@@ -16,7 +15,8 @@ class PumkMitraInput
             'nama_mitra' => ['required', 'string', 'max:255'],
             'jenis_usaha' => ['nullable', 'string', 'max:255'],
             'sektor_usaha_id' => ['nullable', 'integer', 'exists:pumk_sektor_usaha,id'],
-            'wilayah_id' => ['nullable', 'integer', 'exists:pumk_wilayah,id'],
+            'kabupaten_kota' => ['nullable', 'string', 'max:255'],
+            'provinsi' => ['nullable', 'string', 'max:255'],
             'alamat' => ['nullable', 'string', 'max:3000'],
             'nama_pemilik' => ['nullable', 'string', 'max:255'],
             'no_ktp' => ['nullable', 'string', 'max:64'],
@@ -63,17 +63,25 @@ class PumkMitraInput
         $sektor = filled($data['sektor_usaha_id'] ?? null)
             ? PumkSektorUsaha::find($data['sektor_usaha_id'])
             : null;
-        $wilayah = filled($data['wilayah_id'] ?? null)
-            ? PumkWilayah::find($data['wilayah_id'])
+        $kabupatenKota = filled($data['kabupaten_kota'] ?? null)
+            ? trim($data['kabupaten_kota'])
             : null;
+        $provinsi = filled($data['provinsi'] ?? null)
+            ? trim($data['provinsi'])
+            : null;
+        $wilayahLabel = collect([$kabupatenKota, $provinsi])
+            ->filter()
+            ->implode(', ');
 
         return [
             'nama_mitra' => trim($data['nama_mitra']),
             'jenis_usaha' => $data['jenis_usaha'] ?? null,
             'sektor_usaha_id' => $sektor?->id,
             'sektor_sumber' => $sektor?->nama,
-            'wilayah_id' => $wilayah?->id,
-            'wilayah_sumber' => $wilayah?->nama,
+            'wilayah_id' => null,
+            'wilayah_sumber' => $wilayahLabel !== '' ? $wilayahLabel : null,
+            'kabupaten_kota' => $kabupatenKota,
+            'provinsi' => $provinsi,
             'alamat' => $data['alamat'] ?? null,
             'nama_pemilik' => $data['nama_pemilik'] ?? null,
             'no_ktp_encrypted' => $data['no_ktp'] ?? null,

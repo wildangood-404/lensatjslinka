@@ -38,7 +38,7 @@
         @if($pinjaman && $kartu)
             <div class="grid">
                 <div class="metric"><span>Status</span><strong style="font-size:18px">{{ $pinjaman->status === 'lunas' ? 'Lunas / Arsip' : 'Aktif' }}</strong></div>
-                <div class="metric"><span>Wilayah</span><strong style="font-size:17px">{{ $mitra->wilayah?->nama ?? $mitra->wilayah_sumber ?? '-' }}</strong></div>
+                <div class="metric"><span>Wilayah</span><strong style="font-size:17px">{{ $mitra->wilayah_label ?? '-' }}</strong></div>
                 <div class="metric"><span>Pinjaman pokok</span><strong style="font-size:21px">Rp {{ number_format((float) $pinjaman->pinjaman_pokok, 0, ',', '.') }}</strong></div>
                 <div class="metric"><span>Pinjaman bunga</span><strong style="font-size:21px">Rp {{ number_format((float) $pinjaman->pinjaman_bunga, 0, ',', '.') }}</strong></div>
                 <div class="metric"><span>Sisa piutang</span><strong style="font-size:21px">Rp {{ number_format((float) $kartu['kekurangan'], 0, ',', '.') }}</strong></div>

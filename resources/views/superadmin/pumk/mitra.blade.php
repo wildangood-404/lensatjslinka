@@ -21,7 +21,7 @@
                     @php($pinjaman = $mitra->pinjaman->first())
                     <tr>
                         <td>{{ $mitra->nama_mitra }}</td>
-                        <td>{{ $mitra->wilayah?->nama ?? $mitra->wilayah_sumber ?? '-' }}</td>
+                        <td>{{ $mitra->wilayah_label ?? '-' }}</td>
                         <td>{{ $mitra->sektorUsaha?->nama ?? $mitra->sektor_sumber ?? '-' }}</td>
                         <td><span class="status-badge {{ $mitra->pinjaman_aktif_exists ? 'aktif' : 'lunas' }}">{{ $mitra->pinjaman_aktif_exists ? 'Aktif' : 'Selesai / Arsip' }}</span></td>
                         <td>{{ $pinjaman?->kolektibilitas ? ucwords(str_replace('_', ' ', $pinjaman->kolektibilitas)) : '-' }}</td>

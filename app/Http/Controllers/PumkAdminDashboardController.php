@@ -28,7 +28,10 @@ class PumkAdminDashboardController extends Controller
             'dataBelumLengkap' => PumkMitra::query()
                 ->whereHas('pinjamanAktif')
                 ->where(function ($query): void {
-                    $query->whereNull('wilayah_id')
+                    $query->where(function ($location): void {
+                        $location->whereNull('wilayah_id')
+                            ->where(fn ($source) => $source->whereNull('wilayah_sumber')->orWhere('wilayah_sumber', ''));
+                    })
                         ->orWhereNull('sektor_usaha_id')
                         ->orWhereNull('nama_pemilik');
                 })

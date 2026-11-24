@@ -18,7 +18,7 @@
                     </div>
                     <div class="receivable-info-right">
                         <h2 id="receivable-card-title" class="receivable-card-title">KARTU PIUTANG</h2>
-                        <div class="receivable-region">{{ $mitra->wilayah?->nama ?? $mitra->wilayah_sumber ?? 'Wilayah belum diisi' }}</div>
+                        <div class="receivable-region">{{ $mitra->wilayah_label ?? 'Wilayah belum diisi' }}</div>
                         <div class="receivable-reschedule">{{ $isRescheduled ? 'Rescheduling' : '' }}</div>
                         <div class="receivable-mini-finance">
                             <div><span>Bunga</span><strong>{{ $rupiah($pinjaman->pinjaman_bunga) }}</strong></div>

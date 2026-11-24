@@ -6,21 +6,20 @@ use App\Models\AdminNotification;
 use App\Models\Pillar;
 use App\Models\Program;
 use App\Models\ProgramDocument;
+use App\Models\ProgramLog;
 use App\Models\StatusLog;
 use App\Services\ProgramDocumentResponses;
 use App\Support\TjslSubmissionStatusFilter;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class SuperAdminProgramController extends Controller
 {
     public function index(Request $request): View
     {
-        $statusFilter = TjslSubmissionStatusFilter::selected($request, false);
+        $statusFilter = TjslSubmissionStatusFilter::selectedProgram($request, false);
         $selectedPillar = $request->filled('pillar')
             ? Pillar::where('slug', $request->query('pillar'))->first()
             : null;
@@ -34,19 +33,91 @@ class SuperAdminProgramController extends Controller
             'programs' => $programs,
             'selectedPillar' => $selectedPillar,
             'statusFilter' => $statusFilter,
-            'statusOptions' => TjslSubmissionStatusFilter::options(false),
+            'statusOptions' => TjslSubmissionStatusFilter::programOptions(false),
         ]);
     }
 
     public function show(Program $program): View
     {
         return view('admin.programs.form', [
-            'program' => $program->load('pillar', 'documents', 'photos', 'tujuan', 'creator'),
+            'program' => $program->load('pillar', 'documents', 'photos', 'tujuan', 'assistanceItems', 'verificationVendors', 'creator', 'logs.changer'),
             'pillars' => Pillar::all(),
             'editable' => false,
             'routePrefix' => 'superadmin',
-            'isSuperAdmin' => true,
+            'superAdminView' => true,
         ]);
+    }
+
+    public function reviewTahap1(Request $request, Program $program): RedirectResponse
+    {
+        abort_unless($program->documents()->where('kategori_tahap', 'proposal')
+            ->where('document_type', 'proposal_pengajuan_program')->exists(), 422);
+
+        return $this->review($request, $program, 'menunggu_review_proposal', [
+            'approve' => 'proposal_approve',
+            'revise' => 'revisi',
+            'reject' => 'ditolak',
+        ], 'Review Pengajuan Proposal Program');
+    }
+
+    public function reviewTahap2(Request $request, Program $program): RedirectResponse
+    {
+        abort_unless($program->documents()->where('kategori_tahap', 'survei')
+            ->where('document_type', 'kelengkapan_survei')->exists(), 422);
+
+        return $this->review($request, $program, 'menunggu_review_survei', [
+            'approve' => 'survei_disetujui',
+            'revise' => 'perbaikan',
+            'reject' => 'ditolak',
+        ], 'Review Verifikasi Program');
+    }
+
+    public function reviewLaporanAkhir(Request $request, Program $program): RedirectResponse
+    {
+        abort_unless(
+            $program->documents()->where('kategori_tahap', 'laporan_akhir')->where('document_type', 'laporan_akhir')->exists()
+            && $program->documents()->where('kategori_tahap', 'dokumentasi')->where('document_type', 'dokumentasi_kegiatan')->exists(),
+            422,
+        );
+
+        return $this->review($request, $program, 'menunggu_review_laporan_akhir', [
+            'approve' => 'selesai',
+            'revise' => 'revisi_laporan_akhir',
+        ], 'Review Laporan Akhir');
+    }
+
+    private function review(Request $request, Program $program, string $expectedStatus, array $transitions, string $label): RedirectResponse
+    {
+        abort_unless($program->status === $expectedStatus && ! $program->is_archived, 422);
+        $data = $request->validate([
+            'decision' => ['required', 'in:'.implode(',', array_keys($transitions))],
+            'catatan' => ['required_if:decision,revise,reject', 'nullable', 'string', 'min:5'],
+        ]);
+
+        $from = $program->status;
+        $to = $transitions[$data['decision']];
+        $note = $data['catatan'] ?? null;
+        DB::transaction(function () use ($request, $program, $from, $to, $note, $label): void {
+            $program->update([
+                'status' => $to,
+                'catatan_terakhir' => $note,
+                'rejected_reason' => $to === 'ditolak' ? $note : null,
+                'fase1_reviewed_by' => $label === 'Review Pengajuan Proposal Program' ? $request->user()->id : $program->fase1_reviewed_by,
+                'fase1_reviewed_at' => $label === 'Review Pengajuan Proposal Program' ? now() : $program->fase1_reviewed_at,
+                'fase1_rejected_reason' => $label === 'Review Pengajuan Proposal Program' && $to === 'ditolak' ? $note : null,
+                'fase2_reviewed_by' => $label === 'Review Verifikasi Program' ? $request->user()->id : $program->fase2_reviewed_by,
+                'fase2_reviewed_at' => $label === 'Review Verifikasi Program' ? now() : $program->fase2_reviewed_at,
+                'fase2_rejected_reason' => $label === 'Review Verifikasi Program' && $to === 'ditolak' ? $note : null,
+            ]);
+            $this->log($program, $from, $to, $request->user()->id, $note);
+        });
+        $this->notifyCreator(
+            $program,
+            "{$label} Program TJSL",
+            "Status program \"{$program->nama_program}\" berubah menjadi {$to}.".($note ? " Catatan: {$note}" : ''),
+        );
+
+        return back()->with('success', "{$label} berhasil: ".str_replace('_', ' ', ucfirst($to)).'.');
     }
 
     public function approve(Request $request, Program $program): RedirectResponse
@@ -136,13 +207,9 @@ class SuperAdminProgramController extends Controller
         return back()->with('success', $success);
     }
 
-    public function downloadDocument(ProgramDocument $document)
+    public function downloadDocument(ProgramDocument $document, ProgramDocumentResponses $responses)
     {
-        /** @var FilesystemAdapter $disk */
-        $disk = Storage::disk('local');
-        abort_unless($disk->exists($document->file_path), 404);
-
-        return $disk->download($document->file_path, $document->nama_dokumen);
+        return $responses->download($document);
     }
 
     public function viewDocument(ProgramDocument $document, ProgramDocumentResponses $responses)
@@ -157,6 +224,14 @@ class SuperAdminProgramController extends Controller
         int $userId,
         ?string $note = null,
     ): void {
+        ProgramLog::create([
+            'program_id' => $program->id,
+            'from_status' => $from,
+            'to_status' => $to,
+            'changed_by' => $userId,
+            'catatan' => $note,
+        ]);
+
         StatusLog::create([
             'related_type' => 'program',
             'related_id' => $program->id,

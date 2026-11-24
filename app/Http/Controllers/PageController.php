@@ -6,6 +6,7 @@ use App\Models\BantuanCsr;
 use App\Models\BantuanCsrDocument;
 use App\Models\Program;
 use App\Models\ProgramDocument;
+use App\Models\NewsItem;
 use App\Models\TerasPaket;
 use App\Models\TerasProduk;
 use App\Services\Monitoring\PumkDashboardService;
@@ -100,7 +101,7 @@ class PageController extends Controller
 
         return view('pages.program-overview', [
             'programs' => $programs,
-            'news' => $this->data('news'),
+            'news' => NewsItem::query()->orderBy('id')->get(),
             'searchKeyword' => $keyword,
             'monitoringSignature' => app(PublicProgramOverview::class)->monitoringRevision($keyword, $year),
         ]);
@@ -128,7 +129,6 @@ class PageController extends Controller
             'programs' => $programs,
             'emptyMessage' => 'Belum ada program yang telah disetujui Super Admin.',
             'showSearch' => true,
-            'showCsrLegend' => true,
             'searchKeyword' => $keyword,
             'monitoringBaseUrl' => route('program.overview'),
             'monitoringSignature' => $signature,

@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminProfileController;
 use App\Http\Controllers\AdminProgramController;
+use App\Http\Controllers\AdminNewsController;
 use App\Http\Controllers\AdminTerasPaketController;
 use App\Http\Controllers\AdminTerasProdukController;
 use App\Http\Controllers\MonitoringUploadController;
@@ -73,12 +74,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/program-documents/{document}', [AdminProgramController::class, 'downloadDocument'])->name('program-documents.download');
         Route::delete('/program-documents/{document}', [AdminProgramController::class, 'destroyDocument'])->name('program-documents.destroy');
         Route::post('/program-tjsl/{program}/cancel', [AdminProgramController::class, 'cancel'])->name('programs.cancel');
+        Route::post('/program-tjsl/{program}/tahap-2', [AdminProgramController::class, 'storeTahap2'])->name('programs.tahap2.store');
+        Route::post('/program-tjsl/{program}/pengajuan', [AdminProgramController::class, 'updatePengajuan'])->name('programs.pengajuan.update');
+        Route::post('/program-tjsl/{program}/kasbon', [AdminProgramController::class, 'updateKasbon'])->name('programs.kasbon.update');
+        Route::post('/program-tjsl/{program}/laporan-akhir', [AdminProgramController::class, 'storeLaporanAkhir'])->name('programs.laporan-akhir.store');
         Route::get('/program-tjsl/{program}/bast-dokumentasi', [AdminProgramController::class, 'phaseTwo'])->name('programs.phase2');
         Route::post('/program-tjsl/{program}/bast', [AdminProgramController::class, 'uploadBast'])->name('programs.bast.store');
         Route::get('/program-tjsl/create/{jenisKerjasama}', [AdminProgramController::class, 'createCooperationForm'])
             ->where('jenisKerjasama', 'pks|non-pks')
             ->name('programs.cooperation.form');
         Route::resource('program-tjsl', AdminProgramController::class)->parameters(['program-tjsl' => 'program'])->names('programs')->except(['destroy', 'edit']);
+        Route::resource('berita', AdminNewsController::class)
+            ->parameters(['berita' => 'berita'])
+            ->names('news')
+            ->except(['show']);
         Route::get('/bantuan-documents/{document}', [AdminBantuanCsrController::class, 'downloadDocument'])->name('assistance-documents.download');
         Route::delete('/bantuan-documents/{document}', [AdminBantuanCsrController::class, 'destroyDocument'])->name('assistance-documents.destroy');
         Route::post('/bantuan-csr/{bantuanCsr}/cancel', [AdminBantuanCsrController::class, 'cancel'])->name('assistance.cancel');
@@ -182,6 +191,9 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
 
         Route::post('/program-tjsl/{program}/approve', [SuperAdminProgramController::class, 'approve'])->name('programs.approve');
         Route::post('/program-tjsl/{program}/reject', [SuperAdminProgramController::class, 'reject'])->name('programs.reject');
+        Route::post('/program-tjsl/{program}/review-proposal', [SuperAdminProgramController::class, 'reviewTahap1'])->name('programs.review-proposal');
+        Route::post('/program-tjsl/{program}/review-survei', [SuperAdminProgramController::class, 'reviewTahap2'])->name('programs.review-survei');
+        Route::post('/program-tjsl/{program}/review-laporan-akhir', [SuperAdminProgramController::class, 'reviewLaporanAkhir'])->name('programs.review-laporan-akhir');
         Route::get('/program-documents/{document}/lihat', [SuperAdminProgramController::class, 'viewDocument'])->name('program-documents.view');
         Route::get('/program-documents/{document}', [SuperAdminProgramController::class, 'downloadDocument'])->name('program-documents.download');
         Route::resource('program-tjsl', SuperAdminProgramController::class)->parameters(['program-tjsl' => 'program'])->names('programs')->only(['index', 'show']);

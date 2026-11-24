@@ -9,6 +9,13 @@ use Tests\TestCase;
 
 class UatFoundationTest extends TestCase
 {
+    public function test_application_uses_western_indonesian_time(): void
+    {
+        $this->assertSame('Asia/Jakarta', config('app.timezone'));
+        $this->assertSame('Asia/Jakarta', date_default_timezone_get());
+        $this->assertSame('+07:00', now()->format('P'));
+    }
+
     public function test_all_critical_uat_routes_keep_their_role_boundaries(): void
     {
         $this->assertRoutesUseMiddleware([

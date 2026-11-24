@@ -100,7 +100,11 @@ class SuperAdminPhaseThreeTest extends TestCase
     public function test_super_admin_sidebar_has_only_four_labeled_primary_menus_and_defaults_expanded(): void
     {
         $response = $this->actingAs($this->superAdmin(), 'superadmin')->get(route('superadmin.home'));
-        $response->assertOk()->assertSeeInOrder(['SuperAdmin', 'Home', 'Overview Program TJSL', 'Overview Bantuan TJSL', 'User']);
+        $response->assertOk()
+            ->assertSeeInOrder(['SuperAdmin', 'Home', 'Overview Program TJSL', 'User'])
+            ->assertDontSee('Overview Bantuan TJSL')
+            ->assertDontSee('Status Bantuan TJSL')
+            ->assertDontSee('Bantuan TJSL');
         $response->assertSee('var savedSidebarState=true?false:', false);
         $response->assertDontSee('superadmin.logout');
     }
@@ -139,7 +143,7 @@ class SuperAdminPhaseThreeTest extends TestCase
         $this->post('/superadmin/bantuan-csr')->assertStatus(405);
 
         $sidebar = $this->get(route('superadmin.home'));
-        $sidebar->assertSee('Status Bantuan TJSL')
+        $sidebar->assertDontSee('Status Bantuan TJSL')
             ->assertDontSee('Buat Program Baru')
             ->assertDontSee('Buat Bantuan TJSL');
     }

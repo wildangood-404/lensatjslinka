@@ -106,9 +106,12 @@ class PumkMitraChanges
             if (array_key_exists('wilayah_id', $data)) {
                 $identityKeys[] = 'wilayah_sumber';
             }
+            if (array_key_exists('kabupaten_kota', $data) || array_key_exists('provinsi', $data)) {
+                array_push($identityKeys, 'wilayah_id', 'wilayah_sumber', 'kabupaten_kota', 'provinsi');
+            }
             $lockedMitra->update(array_intersect_key($identityPayload, array_flip($identityKeys)));
             $sectorChanged = $lockedMitra->wasChanged(['sektor_sumber', 'sektor_usaha_id']);
-            $regionChanged = $lockedMitra->wasChanged(['wilayah_sumber', 'wilayah_id']);
+            $regionChanged = $lockedMitra->wasChanged(['wilayah_sumber', 'wilayah_id', 'kabupaten_kota', 'provinsi']);
             $payload = array_intersect_key($this->input->pinjamanPayload($data), $data);
             if ($archiveEdit) {
                 $payload = array_diff_key($payload, array_flip($financialFields));
@@ -123,7 +126,7 @@ class PumkMitraChanges
                 $classifications->record($lockedMitra, null, 'sektor', $lockedMitra->sektor_sumber, $effective, 'admin', (string) Str::uuid(), auth('pumk')->id());
             }
             if ($regionChanged) {
-                $classifications->record($lockedMitra, null, 'wilayah', $lockedMitra->wilayah_sumber, $effective, 'admin', (string) Str::uuid(), auth('pumk')->id());
+                $classifications->record($lockedMitra, null, 'wilayah', $lockedMitra->wilayah_label, $effective, 'admin', (string) Str::uuid(), auth('pumk')->id());
             }
             if (! $archiveEdit && $qualityBefore !== $pinjaman->fresh()->kolektibilitas) {
                 $classifications->record(null, $pinjaman, 'kolektibilitas', $pinjaman->fresh()->kolektibilitas, $effective, 'estimate', (string) Str::uuid(), auth('pumk')->id());

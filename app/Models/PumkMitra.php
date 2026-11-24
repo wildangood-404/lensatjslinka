@@ -17,6 +17,8 @@ class PumkMitra extends Model
         'sektor_sumber',
         'wilayah_id',
         'wilayah_sumber',
+        'kabupaten_kota',
+        'provinsi',
         'alamat',
         'nama_pemilik',
         'no_ktp_encrypted',
@@ -55,6 +57,17 @@ class PumkMitra extends Model
     public function wilayah(): BelongsTo
     {
         return $this->belongsTo(PumkWilayah::class, 'wilayah_id');
+    }
+
+    public function getWilayahLabelAttribute(): ?string
+    {
+        $manualLocation = collect([$this->kabupaten_kota, $this->provinsi])
+            ->filter(fn (?string $value): bool => filled($value))
+            ->implode(', ');
+
+        return $manualLocation !== ''
+            ? $manualLocation
+            : ($this->wilayah?->nama ?? $this->wilayah_sumber);
     }
 
     public function creator(): BelongsTo

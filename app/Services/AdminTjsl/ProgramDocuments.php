@@ -6,7 +6,6 @@ use App\Models\Program;
 use App\Models\ProgramDocument;
 use App\Services\ProgramDocumentResponses;
 use App\Services\SubmissionNotificationService;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +25,7 @@ final class ProgramDocuments
         abort_unless($program->canUploadBast(), 403);
 
         $validated = $request->validate([
-            'dokumen_f' => ['required', 'file', 'mimes:pdf,doc,docx,xls,xlsx', 'max:10240'],
+            'dokumen_f' => ['required', 'file', 'max:10240'],
             'bast_document_name' => ['nullable', 'string', 'max:255'],
             'phase2_photos' => ['nullable', 'array', 'max:10'],
             'phase2_photos.*' => ['image', 'max:20480'],
@@ -61,8 +60,10 @@ final class ProgramDocuments
 
                 $program->documents()->create([
                     'document_type' => 'bast',
+                    'kategori_tahap' => 'proposal',
                     'nama_dokumen' => ($validated['bast_document_name'] ?? null)
                         ?: $uploadedFile->getClientOriginalName(),
+                    'nama_file_asli' => $uploadedFile->getClientOriginalName(),
                     'file_path' => $newPath,
                     'uploaded_at' => now(),
                 ]);
@@ -118,11 +119,7 @@ final class ProgramDocuments
     {
         $this->workflow->own($request, $document->program);
 
-        /** @var FilesystemAdapter $disk */
-        $disk = Storage::disk('local');
-        abort_unless($disk->exists($document->file_path), 404);
-
-        return $disk->download($document->file_path, $document->nama_dokumen);
+        return $this->responses->download($document);
     }
 
     public function viewDocument(Request $request, ProgramDocument $document)
@@ -188,8 +185,10 @@ final class ProgramDocuments
 
             $program->documents()->create([
                 'document_type' => $documentType,
+                'kategori_tahap' => 'proposal',
                 'nama_dokumen' => $request->input("documents.{$type}.nama")
                     ?: $payload['file']->getClientOriginalName(),
+                'nama_file_asli' => $payload['file']->getClientOriginalName(),
                 'file_path' => $payload['file']->store("programs/{$program->id}/documents", 'local'),
                 'uploaded_at' => now(),
             ]);

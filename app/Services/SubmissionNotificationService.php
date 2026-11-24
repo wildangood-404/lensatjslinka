@@ -16,11 +16,29 @@ class SubmissionNotificationService
         $isBastSubmission = $phase === 2;
 
         $this->notifySuperAdmins(
-            ($isBastSubmission ? 'Pengajuan Dokumen BAST Program TJSL oleh ' : 'Pengajuan Program TJSL oleh ')
+            ($isBastSubmission ? 'Pengajuan Dokumen BAST Program TJSL oleh ' : 'Pengajuan Proposal Program TJSL oleh ')
                 .($program->creator?->name ?? 'Admin'),
             $isBastSubmission
                 ? "Dokumen BAST program \"{$program->nama_program}\" menunggu persetujuan Super Admin."
                 : "Program \"{$program->nama_program}\" menunggu persetujuan Super Admin.",
+            'program',
+            $program->id,
+        );
+    }
+
+    public function programWorkflowSubmitted(Program $program, string $stage): void
+    {
+        $program->loadMissing('creator');
+        $labels = [
+            'proposal' => ['Pengajuan Proposal Program TJSL', 'Pengajuan proposal program'],
+            'survei' => ['Verifikasi Program TJSL', 'Verifikasi program'],
+            'laporan_akhir' => ['Laporan Akhir Program TJSL', 'Laporan akhir'],
+        ];
+        [$title, $description] = $labels[$stage] ?? throw new \InvalidArgumentException('Tahap pengajuan program tidak dikenal.');
+
+        $this->notifySuperAdmins(
+            "Pengajuan {$title} oleh ".($program->creator?->name ?? 'Admin'),
+            "{$description} program \"{$program->nama_program}\" menunggu review Super Admin.",
             'program',
             $program->id,
         );

@@ -48,7 +48,11 @@ class SuperAdminPumkMonitoringController extends Controller
             'totalPinjamanLunas' => PumkPinjaman::where('status', PumkPinjaman::STATUS_LUNAS)->count(),
             'totalAngsuranManual' => PumkAngsuran::whereNull('batch_id')->whereNotNull('created_by')->count(),
             'mitraBelumLengkap' => PumkMitra::whereHas('pinjamanAktif')
-                ->where(fn ($query) => $query->whereNull('wilayah_id')->orWhereNull('sektor_usaha_id')->orWhereNull('nama_pemilik'))
+                ->where(fn ($query) => $query
+                    ->where(fn ($location) => $location->whereNull('wilayah_id')
+                        ->where(fn ($source) => $source->whereNull('wilayah_sumber')->orWhere('wilayah_sumber', '')))
+                    ->orWhereNull('sektor_usaha_id')
+                    ->orWhereNull('nama_pemilik'))
                 ->count(),
             'needsReview' => PumkImportRow::where('status', 'needs_review')->count(),
             'angsuranTerbaru' => PumkAngsuran::with(['creator:id,name', 'pinjaman.mitra:id,nama_mitra'])

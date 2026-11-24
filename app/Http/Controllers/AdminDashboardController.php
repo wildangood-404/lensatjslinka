@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BantuanCsr;
 use App\Models\Pillar;
 use App\Models\Program;
 use Illuminate\Http\Request;
@@ -15,7 +14,7 @@ class AdminDashboardController extends Controller
         $userId = $request->user()->id;
         $activePrograms = Program::where('created_by', $userId)
             ->where('is_archived', false)
-            ->where('status', '!=', 'rejected_fase1');
+            ->whereNotIn('status', ['rejected_fase1', 'ditolak', 'kasbon_ditolak']);
 
         return view('admin.dashboard', [
             'pillars' => Pillar::orderBy('id')->get(),
@@ -24,11 +23,6 @@ class AdminDashboardController extends Controller
                 ->groupBy('pillar_id')
                 ->pluck('total', 'pillar_id'),
             'programs' => (clone $activePrograms)->with('pillar')->latest()->get(),
-            'bantuan' => BantuanCsr::where('created_by', $userId)
-                ->where('is_archived', false)
-                ->latest()
-                ->limit(4)
-                ->get(),
         ]);
     }
 }

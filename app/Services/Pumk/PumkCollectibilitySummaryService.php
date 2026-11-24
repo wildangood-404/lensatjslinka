@@ -168,7 +168,15 @@ class PumkCollectibilitySummaryService
                 $query->where('nama_mitra', 'like', '%'.trim((string) $filters['q']).'%');
             }
             if (filled($filters['wilayah'] ?? null)) {
-                $query->where('wilayah_id', $filters['wilayah']);
+                $location = trim((string) $filters['wilayah']);
+                $query->where(function (Builder $locationQuery) use ($location): void {
+                    $locationQuery
+                        ->where('kabupaten_kota', 'like', '%'.$location.'%')
+                        ->orWhere('provinsi', 'like', '%'.$location.'%')
+                        ->orWhere('wilayah_sumber', 'like', '%'.$location.'%')
+                        ->when(ctype_digit($location), fn (Builder $query) => $query->orWhere('wilayah_id', (int) $location))
+                        ->orWhereHas('wilayah', fn ($region) => $region->where('nama', 'like', '%'.$location.'%'));
+                });
             }
             if (filled($filters['sektor'] ?? null)) {
                 $query->where('sektor_usaha_id', $filters['sektor']);

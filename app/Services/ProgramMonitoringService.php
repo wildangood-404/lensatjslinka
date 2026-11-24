@@ -18,11 +18,11 @@ class ProgramMonitoringService
             'fase2Reviewer',
         ]);
 
-        $isInitialRejection = $program->status === 'rejected_fase1';
+        $isInitialRejection = in_array($program->status, ['rejected_fase1', 'ditolak'], true);
         $reviewer = $program->fase2Reviewer ?: $program->fase1Reviewer;
         $reviewedAt = $program->fase2_reviewed_at ?: $program->fase1_reviewed_at;
         $rejectedReason = $isInitialRejection
-            ? $program->fase1_rejected_reason
+            ? ($program->catatan_terakhir ?: $program->fase1_rejected_reason)
             : $program->fase2_rejected_reason;
         $documentTypes = $program->documents
             ->pluck('document_type')
@@ -35,8 +35,8 @@ class ProgramMonitoringService
             'jenis' => 'internal',
             'jenis_kerjasama' => $program->jenis_kerjasama ?: 'pks',
             'slug' => $program->slug,
-            'pillar' => $program->pillar?->slug ?: 'tanpa-pilar',
-            'pillar_label' => $program->pillar?->name ?: 'Pilar Belum Ditentukan',
+            'pillar' => \Illuminate\Support\Str::slug((string) $program->effective_pilar) ?: 'tanpa-pilar',
+            'pillar_label' => $program->effective_pilar ?: 'Pilar Belum Ditentukan',
             'pillar_color' => $program->pillar?->color_hex ?: '#64748b',
             'title' => $program->nama_program,
             'status' => $program->status,

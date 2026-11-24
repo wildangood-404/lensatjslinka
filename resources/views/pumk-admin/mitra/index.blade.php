@@ -49,13 +49,8 @@
                 <input id="q" name="q" class="pumk-input" value="{{ request('q') }}" maxlength="100" placeholder="Masukkan nama mitra">
             </div>
             <div class="pumk-field">
-                <label for="wilayah">Wilayah</label>
-                <select id="wilayah" name="wilayah" class="pumk-select">
-                    <option value="">Semua wilayah</option>
-                    @foreach($wilayahList as $wilayah)
-                        <option value="{{ $wilayah->id }}" @selected((string) request('wilayah') === (string) $wilayah->id)>{{ $wilayah->nama }}</option>
-                    @endforeach
-                </select>
+                <label for="wilayah">Kabupaten/Kota atau Provinsi</label>
+                <input id="wilayah" name="wilayah" class="pumk-input" value="{{ request('wilayah') }}" maxlength="255" placeholder="Cari lokasi mitra">
             </div>
             <div class="pumk-field">
                 <label for="sektor">Sektor Usaha</label>
@@ -101,7 +96,7 @@
                         @endphp
                         <tr>
                             <td><strong>{{ $mitra->nama_mitra }}</strong></td>
-                            <td>{{ $mitra->wilayah?->nama ?? $mitra->wilayah_sumber ?? 'Belum ditentukan' }}</td>
+                            <td>{{ $mitra->wilayah_label ?? 'Belum ditentukan' }}</td>
                             <td>{{ $mitra->sektorUsaha?->nama ?? $mitra->sektor_sumber ?? 'Belum ditentukan' }}</td>
                             <td>
                                 <span class="pumk-badge {{ $status ?: 'belum' }}">

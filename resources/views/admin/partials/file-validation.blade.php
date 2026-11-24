@@ -2,12 +2,11 @@
     $formId = (string) ($formId ?? '');
     $isProgramUploadForm = $formId === 'program-form';
     $restrictDocumentExtensions = in_array($formId, [
-        'program-form',
         'assistance-form',
         'assistance-bast-form',
     ], true);
     $requiredUploadFields = $isProgramUploadForm
-        ? ['nama_program','deskripsi_program','sasaran_program','lokasi_program','mitra_program','rencana_anggaran','pillar_id']
+        ? ['nama_program','deskripsi_program','sasaran_program','lokasi_program','rencana_anggaran','pillar_id']
         : ['nama_program_bantuan','deskripsi_bantuan','pillar_id','rencana_anggaran'];
 @endphp
 <template
@@ -37,11 +36,12 @@
     function validateFileInput(input) {
         input.setCustomValidity('');
         const isPhoto = input.name.includes('photos') || input.name.includes('[foto]');
-        const limit = isPhoto ? photoLimit : documentLimit;
+        const isReportPhoto = input.name.includes('activity_photos');
+        const limit = isPhoto && !isReportPhoto ? photoLimit : documentLimit;
 
         for (const file of input.files) {
             if (file.size > limit) {
-                input.setCustomValidity(`${file.name} terlalu besar. Maksimal ${isPhoto ? '20 MB' : '10 MB'}.`);
+                input.setCustomValidity(`${file.name} terlalu besar. Maksimal ${limit / 1024 / 1024} MB.`);
                 return false;
             }
             if (isPhoto && !file.type.startsWith('image/')) {
@@ -76,7 +76,14 @@
     }
 
     form.addEventListener('change', function (event) {
-        if (event.target.matches('input[type="file"]')) validateFileInput(event.target);
+        if (event.target.matches('input[type="file"]')) {
+            validateFileInput(event.target);
+            const filename = event.target.closest('.document-file-picker, .program-file-picker')?.querySelector('[data-file-name]');
+            if (filename) {
+                filename.textContent = event.target.files[0]?.name || 'Belum ada file dipilih';
+                filename.title = filename.textContent;
+            }
+        }
     });
     form.addEventListener('submit', function (event) {
         let valid = true;

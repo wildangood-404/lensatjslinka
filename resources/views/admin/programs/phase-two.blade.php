@@ -80,25 +80,22 @@
                             value="{{ old('bast_document_name', $bastDocument?->nama_dokumen) }}"
                             placeholder="Masukkan nama dokumen"
                         >
-                        <input
+                        <div class="document-file-picker">
+                            <input
                             id="bast-document-file"
                             type="file"
                             name="dokumen_f"
                             accept=".pdf,.doc,.docx,.xls,.xlsx"
                             required
-                        >
+                            >
+                            <label for="bast-document-file">Pilih File</label>
+                            <span class="document-file-name" data-file-name aria-live="polite">Belum ada file dipilih</span>
+                        </div>
                         <div class="document-actions">
                             @if($bastDocument)
                             <a href="{{ route('admin.program-documents.view', $bastDocument) }}" class="action-view" target="_blank" rel="noopener">Lihat</a>
                             <a href="{{ route('admin.program-documents.download', $bastDocument) }}" class="action-view">Download</a>
                         @endif
-                            <button
-                                type="button"
-                                class="action-upload"
-                                onclick="document.getElementById('bast-document-file').click()"
-                            >
-                                Unggah
-                            </button>
                         </div>
                     </div>
 
@@ -110,21 +107,17 @@
                                 value="{{ old('phase2_photo_captions.0') }}"
                                 placeholder="Masukkan keterangan gambar"
                             >
-                            <input
+                            <div class="document-file-picker">
+                                <input
                                 id="phase-two-photo-0"
                                 type="file"
                                 name="phase2_photos[]"
                                 accept="image/*"
-                            >
-                            <div class="document-actions">
-                                <button
-                                    type="button"
-                                    class="action-upload"
-                                    onclick="document.getElementById('phase-two-photo-0').click()"
                                 >
-                                    Unggah
-                                </button>
+                                <label for="phase-two-photo-0">Pilih File</label>
+                                <span class="document-file-name" data-file-name aria-live="polite">Belum ada file dipilih</span>
                             </div>
+                            <span></span>
                         </div>
                     </div>
 
@@ -189,10 +182,12 @@
                     row.innerHTML = `
                         <span>Dokumentasi Tambahan ${photoIndex}</span>
                         <input name="phase2_photo_captions[]" placeholder="Masukkan keterangan gambar">
-                        <input id="${inputId}" type="file" name="phase2_photos[]" accept="image/*">
-                        <div class="document-actions">
-                            <button type="button" class="action-upload" data-photo-input="${inputId}">Unggah</button>
+                        <div class="document-file-picker">
+                            <input id="${inputId}" type="file" name="phase2_photos[]" accept="image/*">
+                            <label for="${inputId}">Pilih File</label>
+                            <span class="document-file-name" data-file-name aria-live="polite">Belum ada file dipilih</span>
                         </div>
+                        <span></span>
                     `;
                     rows.appendChild(row);
                     photoIndex += 1;
@@ -200,10 +195,6 @@
                     if (rows.children.length >= 10) addButton.disabled = true;
                 });
 
-                rows?.addEventListener('click', function (event) {
-                    const button = event.target.closest('[data-photo-input]');
-                    if (button) document.getElementById(button.dataset.photoInput)?.click();
-                });
             })();
         </script>
         @include('admin.partials.file-validation', ['formId' => 'program-form'])

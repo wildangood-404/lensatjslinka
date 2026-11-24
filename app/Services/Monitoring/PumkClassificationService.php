@@ -50,7 +50,7 @@ class PumkClassificationService
 
         $current = match ($attribute) {
             'sektor' => $loan->mitra?->sektorUsaha?->nama ?? $loan->mitra?->sektor_sumber,
-            'wilayah' => $loan->mitra?->wilayah?->nama ?? $loan->mitra?->wilayah_sumber,
+            'wilayah' => $loan->mitra?->wilayah_label,
             'kolektibilitas' => $loan->kolektibilitas,
         };
         if (blank($current)) {

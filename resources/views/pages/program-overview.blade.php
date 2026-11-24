@@ -13,7 +13,6 @@
                     'programs' => $programs,
                     'emptyMessage' => 'Belum ada program yang telah disetujui Super Admin.',
                     'showSearch' => true,
-                    'showCsrLegend' => true,
                     'searchKeyword' => $searchKeyword,
                     'monitoringBaseUrl' => route('program.overview'),
                     'monitoringSignature' => $monitoringSignature,
@@ -25,15 +24,15 @@
                 @foreach ($news as $item)
                     <article class="panel overflow-hidden">
                         <img
-                            src="{{ asset($item['image']) }}"
-                            alt="{{ $item['title'] }}"
+                            src="{{ $item->image_url }}"
+                            alt="{{ $item->title }}"
                             class="aspect-square w-full object-cover"
                             loading="lazy"
                         >
                         <div class="p-4">
-                            <h3 class="font-bold leading-relaxed">{{ $item['title'] }}</h3>
-                            <p class="mt-5 text-sm text-slate-500">{{ $item['source'] }}</p>
-                            <p class="text-sm text-slate-500">{{ $item['date'] }}</p>
+                            <h3 class="font-bold leading-relaxed">{{ $item->title }}</h3>
+                            <p class="mt-5 text-sm text-slate-500">{{ $item->source }}</p>
+                            <p class="text-sm text-slate-500">{{ $item->published_date }}</p>
                         </div>
                     </article>
                 @endforeach

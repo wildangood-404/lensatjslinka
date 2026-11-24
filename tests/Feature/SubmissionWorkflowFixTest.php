@@ -159,6 +159,6 @@ class SubmissionWorkflowFixTest extends TestCase
             $response->assertSee('data-program-status="'.$status.'"', false);
         }
 
-        $this->assertSame(5, substr_count($response->getContent(), 'background:'.$pillar->color_hex));
+        $this->assertSame(5, substr_count($response->getContent(), 'background-color:'.$pillar->color_hex));
     }
 }

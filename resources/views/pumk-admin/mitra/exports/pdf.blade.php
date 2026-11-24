@@ -33,7 +33,7 @@
         </td>
         <td class="right">
             <div class="card-title">KARTU PIUTANG</div>
-            <div class="region">{{ $mitra->wilayah?->nama ?? $mitra->wilayah_sumber ?? 'Wilayah belum diisi' }}</div>
+            <div class="region">{{ $mitra->wilayah_label ?? 'Wilayah belum diisi' }}</div>
             <div class="reschedule">{{ $isRescheduled ? 'Rescheduling' : '' }}</div>
             <table class="mini"><tr><td>Bunga</td><td><strong>Rp {{ $angka($pinjaman->pinjaman_bunga) }}</strong></td></tr><tr><td>Angs/bln</td><td><strong>Rp {{ $angka($pinjaman->nilai_angsuran_bulanan) }}</strong></td></tr></table>
         </td>

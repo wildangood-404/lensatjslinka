@@ -167,8 +167,11 @@ class AdminPhaseTwoTest extends TestCase
             ->assertSee('Dashboard Admin TJSL')
             ->assertSee('Hukum &amp; Tata Kelola', false)
             ->assertSee('Program TJSL')
-            ->assertSee('Status Bantuan TJSL')
-            ->assertSee('Buat Bantuan TJSL');
+            ->assertDontSee('Overview Bantuan TJSL')
+            ->assertDontSee('Status Bantuan TJSL')
+            ->assertDontSee('Buat Bantuan TJSL')
+            ->assertDontSee('Bantuan TJSL')
+            ->assertDontSee('Bantuan Sarana Pendidikan Masyarakat');
     }
 
     public function test_create_forms_use_verified_design_tokens_and_reference_structure(): void
@@ -178,13 +181,13 @@ class AdminPhaseTwoTest extends TestCase
 
         $this->actingAs($admin, 'admin')->get(route('admin.programs.create'))
             ->assertOk()
-            ->assertSee('Pilih Jenis Kerja Sama Program TJSL')
+            ->assertSee('Buat Program Baru')
             ->assertSee('PKS')
-            ->assertSee('NON-PKS')
-            ->assertSee(route('admin.programs.cooperation.form', ['jenisKerjasama' => 'pks']), false)
-            ->assertSee(route('admin.programs.cooperation.form', ['jenisKerjasama' => 'non-pks']), false)
-            ->assertDontSee('Program Internal')
-            ->assertDontSee('Program Eksternal');
+            ->assertSee('NON PKS')
+            ->assertSee('Pengajuan Proposal Program')
+            ->assertSee('Proposal Program')
+            ->assertSee('Nama Kontak Person')
+            ->assertSee('Tanggal Program');
 
         $this->actingAs($admin, 'admin')->get(route('admin.programs.cooperation.form', ['jenisKerjasama' => 'pks']))
             ->assertOk()
@@ -193,9 +196,12 @@ class AdminPhaseTwoTest extends TestCase
             ->assertSee('#2653ff')
             ->assertSee('#fd6eff')
             ->assertSee('#0a4e6f')
-            ->assertSee('Program TJSL INKA')
-            ->assertSee('Proposal Pengajuan Program')
-            ->assertSee('Perjanjian Kerja Sama')
+            ->assertSee('Buat Program Baru')
+            ->assertSee('Pengajuan Proposal Program')
+            ->assertSee('Nama Kontak Person')
+            ->assertSee('Tambah Dokumen')
+            ->assertDontSee('Kajian Kelayakan Kerja Sama')
+            ->assertDontSee('Perjanjian Kerja Sama')
             ->assertDontSee('Berita Acara Serah Terima (BAST)')
             ->assertDontSee('A. Proposal Pengajuan Program')
             ->assertDontSee('E. Perjanjian Kerja Sama')

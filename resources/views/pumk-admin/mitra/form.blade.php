@@ -56,13 +56,14 @@
                         </select>
                     </div>
                     <div class="pumk-field">
-                        <label for="wilayah_id">Wilayah</label>
-                        <select id="wilayah_id" name="wilayah_id" class="pumk-select">
-                            <option value="">Pilih wilayah</option>
-                            @foreach($wilayahList as $wilayah)
-                                <option value="{{ $wilayah->id }}" @selected((string) old('wilayah_id', $mitra->wilayah_id) === (string) $wilayah->id)>{{ $wilayah->nama }}</option>
-                            @endforeach
-                        </select>
+                        <label for="kabupaten_kota">Kabupaten/Kota</label>
+                        <input id="kabupaten_kota" name="kabupaten_kota" class="pumk-input" value="{{ old('kabupaten_kota', $mitra->kabupaten_kota ?: ($mitra->wilayah?->nama ?? null)) }}" maxlength="255" placeholder="Masukkan kabupaten atau kota">
+                        @error('kabupaten_kota')<span class="pumk-field-error">{{ $message }}</span>@enderror
+                    </div>
+                    <div class="pumk-field">
+                        <label for="provinsi">Provinsi</label>
+                        <input id="provinsi" name="provinsi" class="pumk-input" value="{{ old('provinsi', $mitra->provinsi) }}" maxlength="255" placeholder="Masukkan provinsi">
+                        @error('provinsi')<span class="pumk-field-error">{{ $message }}</span>@enderror
                     </div>
                     <div class="pumk-field full">
                         <label for="alamat">Alamat</label>

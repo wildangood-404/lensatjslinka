@@ -6,7 +6,6 @@ use App\Models\PumkMitra;
 use App\Models\PumkPinjaman;
 use App\Models\PumkPinjamanDokumen;
 use App\Models\PumkSektorUsaha;
-use App\Models\PumkWilayah;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -17,7 +16,7 @@ class PumkMitraPages
     {
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
-            'wilayah' => ['nullable', 'integer', 'exists:pumk_wilayah,id'],
+            'wilayah' => ['nullable', 'string', 'max:255'],
             'sektor' => ['nullable', 'integer', 'exists:pumk_sektor_usaha,id'],
             'kolektibilitas' => ['nullable', Rule::in($this->collectibilityValues())],
             'status' => ['nullable', Rule::in(['aktif', 'lunas', 'semua'])],
@@ -50,7 +49,17 @@ class PumkMitraPages
                 $keyword = trim((string) $filters['q']);
                 $query->where('nama_mitra', 'like', '%'.$keyword.'%');
             })
-            ->when(filled($filters['wilayah'] ?? null), fn ($query) => $query->where('wilayah_id', $filters['wilayah']))
+            ->when(filled($filters['wilayah'] ?? null), function ($query) use ($filters): void {
+                $location = trim((string) $filters['wilayah']);
+                $query->where(function ($locationQuery) use ($location): void {
+                    $locationQuery
+                        ->where('kabupaten_kota', 'like', '%'.$location.'%')
+                        ->orWhere('provinsi', 'like', '%'.$location.'%')
+                        ->orWhere('wilayah_sumber', 'like', '%'.$location.'%')
+                        ->when(ctype_digit($location), fn ($query) => $query->orWhere('wilayah_id', (int) $location))
+                        ->orWhereHas('wilayah', fn ($region) => $region->where('nama', 'like', '%'.$location.'%'));
+                });
+            })
             ->when(filled($filters['sektor'] ?? null), fn ($query) => $query->where('sektor_usaha_id', $filters['sektor']))
             ->when($matchingLoanIds !== null, function ($query) use ($matchingLoanIds, $statusFilter): void {
                 $query->whereHas('pinjaman', fn ($pinjaman) => $pinjaman
@@ -73,7 +82,6 @@ class PumkMitraPages
             'mitraList' => $mitraList,
             'collectibilitySummary' => $selectedRecap['summary'] ?? null,
             'selectedCollectibility' => $selectedCollectibility,
-            'wilayahList' => PumkWilayah::query()->where('is_active', true)->orderBy('nama')->get(['id', 'nama']),
             'sektorList' => PumkSektorUsaha::query()->where('is_active', true)->orderBy('nama')->get(['id', 'nama']),
             'collectibilityOptions' => $this->collectibilityOptions(),
             'statusFilter' => $statusFilter,
@@ -136,7 +144,6 @@ class PumkMitraPages
         return [
             'mitra' => $mitra,
             'pinjaman' => $pinjaman,
-            'wilayahList' => PumkWilayah::query()->where('is_active', true)->orderBy('nama')->get(['id', 'nama']),
             'sektorList' => PumkSektorUsaha::query()->where('is_active', true)->orderBy('nama')->get(['id', 'nama']),
             'documentTypes' => PumkPinjamanDokumen::TYPES,
             'contractDocuments' => $pinjaman->exists

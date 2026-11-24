@@ -13,8 +13,26 @@ class Program extends Model
         'non_pks',
     ];
 
+    public const WORKFLOW_STATUSES = [
+        'draft',
+        'menunggu_review_proposal',
+        'revisi',
+        'proposal_approve',
+        'menunggu_review_survei',
+        'perbaikan',
+        'survei_disetujui',
+        'tertunda',
+        'pelaksanaan',
+        'kasbon_disetujui',
+        'kasbon_ditolak',
+        'menunggu_review_laporan_akhir',
+        'revisi_laporan_akhir',
+        'selesai',
+        'ditolak',
+    ];
+
     public const PHASE_ONE_DOCUMENTS = [
-        'proposal_pengajuan_program' => 'Proposal Pengajuan Program',
+        'proposal_pengajuan_program' => 'Proposal Program',
         'kelengkapan_survei' => 'Kelengkapan Survei',
         'kajian_kelayakan' => 'Kajian Kelayakan Kerja Sama',
         'kajian_mitigasi_risiko' => 'Kajian Risiko',
@@ -26,6 +44,14 @@ class Program extends Model
         'approved_fase1',
         'pending_fase2',
         'completed',
+        'proposal_approve',
+        'menunggu_review_survei',
+        'survei_disetujui',
+        'tertunda',
+        'pelaksanaan',
+        'kasbon_disetujui',
+        'menunggu_review_laporan_akhir',
+        'selesai',
     ];
 
     /**
@@ -36,18 +62,65 @@ class Program extends Model
         'approved_fase1',
         'pending_fase2',
         'completed',
+        'proposal_approve',
+        'menunggu_review_survei',
+        'survei_disetujui',
+        'tertunda',
+        'pelaksanaan',
+        'kasbon_disetujui',
+        'menunggu_review_laporan_akhir',
+        'selesai',
     ];
 
     protected $fillable = [
         'slug',
         'pillar_id',
         'jenis_kerjasama',
+        'tipe_kerjasama',
+        'jenis_pengajuan',
+        'nama_mitra',
+        'no_surat',
+        'tanggal_surat',
+        'kategori_program',
         'nama_program',
         'deskripsi_program',
+        'tanggal_program',
+        'pilar_verifikasi',
+        'kesesuaian_rka',
+        'no_tpb',
+        'jenis_program_tpb',
+        'sisa_anggaran',
+        'kebutuhan_program',
+        'tanggal_pelaksanaan',
+        'keterangan_verifikasi',
+        'jenis_bantuan_verifikasi',
+        'sumber_pencairan',
+        'sumber_pencairan_lainnya',
+        'nama_pemilik_rekening',
+        'nomor_rekening',
+        'nama_bank',
+        'jalur_pengadaan_barang',
+        'sub_jalur_pengadaan',
+        'sumber_barang',
+        'deskripsi_barang',
+        'kategori_jasa',
+        'keterangan_jasa_verifikasi',
+        'jalur_pengajuan',
+        'status_operasional',
+        'catatan_operasional',
+        'nama_program_laporan',
+        'nilai_program_realisasi',
+        'no_dokumen_laporan',
+        'nama_dokumen_laporan',
         'sasaran_program',
         'lokasi_program',
         'mitra_program',
         'rencana_anggaran',
+        'jenis_bantuan',
+        'nominal_uang_tunai',
+        'detail_jasa',
+        'pic_nama',
+        'pic_telepon',
         'realisasi_anggaran',
         'tujuan_program',
         'status',
@@ -60,6 +133,7 @@ class Program extends Model
         'fase2_reviewed_by',
         'fase2_reviewed_at',
         'fase2_rejected_reason',
+        'catatan_terakhir',
     ];
 
     protected function casts(): array
@@ -69,7 +143,16 @@ class Program extends Model
             'submitted_at' => 'datetime',
             'fase1_reviewed_at' => 'datetime',
             'fase2_reviewed_at' => 'datetime',
+            'tanggal_surat' => 'date',
+            'tanggal_program' => 'date',
+            'tanggal_pelaksanaan' => 'date',
             'rencana_anggaran' => 'decimal:2',
+            'sisa_anggaran' => 'decimal:2',
+            'nilai_program_realisasi' => 'decimal:2',
+            'jenis_bantuan' => 'array',
+            'jenis_bantuan_verifikasi' => 'array',
+            'jalur_pengajuan' => 'array',
+            'nominal_uang_tunai' => 'integer',
             'realisasi_anggaran' => 'decimal:2',
         ];
     }
@@ -99,6 +182,11 @@ class Program extends Model
         return $this->hasMany(ProgramDocument::class);
     }
 
+    public function logs(): HasMany
+    {
+        return $this->hasMany(ProgramLog::class)->latest();
+    }
+
     public function photos(): HasMany
     {
         return $this->hasMany(ProgramPhoto::class)->orderBy('order');
@@ -109,6 +197,21 @@ class Program extends Model
         return $this->hasMany(ProgramTujuan::class)->orderBy('urutan');
     }
 
+    public function assistanceItems(): HasMany
+    {
+        return $this->hasMany(ProgramAssistanceItem::class)->orderBy('id');
+    }
+
+    public function verificationVendors(): HasMany
+    {
+        return $this->hasMany(ProgramVerificationVendor::class)->orderBy('id');
+    }
+
+    public function getEffectivePilarAttribute(): ?string
+    {
+        return $this->pilar_verifikasi ?: ($this->kategori_program ?: $this->pillar?->name);
+    }
+
     public function bantuanCsr(): HasMany
     {
         return $this->hasMany(BantuanCsr::class);
@@ -116,7 +219,8 @@ class Program extends Model
 
     public function canBeEdited(): bool
     {
-        return $this->status === 'draft' && ! $this->is_archived;
+        return in_array($this->status, ['draft', 'revisi', 'perbaikan', 'revisi_laporan_akhir'], true)
+            && ! $this->is_archived;
     }
 
     public function canUploadBast(): bool
@@ -147,6 +251,9 @@ class Program extends Model
 
     public function cooperationLabel(): string
     {
-        return $this->jenis_kerjasama === 'non_pks' ? 'NON-PKS' : 'PKS';
+        return in_array($this->tipe_kerjasama, ['NON PKS', 'NON-PKS'], true)
+            || $this->jenis_kerjasama === 'non_pks'
+            ? 'NON PKS'
+            : 'PKS';
     }
 }

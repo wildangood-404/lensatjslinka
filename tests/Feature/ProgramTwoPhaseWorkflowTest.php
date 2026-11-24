@@ -68,7 +68,7 @@ class ProgramTwoPhaseWorkflowTest extends TestCase
         );
         $this->assertDatabaseHas('notifications', [
             'user_id' => $this->superAdmin->id,
-            'title' => 'Pengajuan Program TJSL oleh '.$this->admin->name,
+            'title' => 'Pengajuan Proposal Program TJSL oleh '.$this->admin->name,
             'message' => 'Program "Program Menunggu Persetujuan" menunggu persetujuan Super Admin.',
             'related_type' => 'program',
             'related_id' => $program->id,
@@ -114,8 +114,10 @@ class ProgramTwoPhaseWorkflowTest extends TestCase
         $this->assertStringStartsWith('inline;', $adminPreview->headers->get('Content-Disposition'));
 
         $adminDownload = $this->get(route('admin.program-documents.download', $document));
-        $adminDownload->assertOk();
+        $adminDownload->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('attachment;', $adminDownload->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('.pdf', $adminDownload->headers->get('Content-Disposition'));
 
         $superAdminPage = $this->actingAs($this->superAdmin, 'superadmin')
             ->get(route('superadmin.programs.show', $program));
@@ -126,6 +128,10 @@ class ProgramTwoPhaseWorkflowTest extends TestCase
         $superAdminPreview = $this->get(route('superadmin.program-documents.view', $document));
         $superAdminPreview->assertOk();
         $this->assertStringStartsWith('inline;', $superAdminPreview->headers->get('Content-Disposition'));
+
+        $superAdminDownload = $this->get(route('superadmin.program-documents.download', $document));
+        $superAdminDownload->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringContainsString('.pdf', $superAdminDownload->headers->get('Content-Disposition'));
     }
 
     public function test_admin_cannot_preview_another_admins_program_document(): void
@@ -227,6 +233,8 @@ class ProgramTwoPhaseWorkflowTest extends TestCase
             ->assertDontSee('Tahap 2')
             ->assertSee('name="bast_document_name"', false)
             ->assertSee('name="dokumen_f"', false)
+            ->assertSee('Pilih File')
+            ->assertDontSee('>Unggah</button>', false)
             ->assertSee('name="phase2_photos[]"', false)
             ->assertSee('name="phase2_photo_captions[]"', false)
             ->assertSee('Tambah Gambar')

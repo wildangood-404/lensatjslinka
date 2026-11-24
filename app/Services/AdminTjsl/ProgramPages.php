@@ -14,7 +14,7 @@ final class ProgramPages
 
     public function index(Request $request): View
     {
-        $statusFilter = TjslSubmissionStatusFilter::selected($request, true);
+        $statusFilter = TjslSubmissionStatusFilter::selectedProgram($request, true);
         $selectedPillar = $request->filled('pillar')
             ? Pillar::where('slug', $request->query('pillar'))->first()
             : null;
@@ -29,13 +29,21 @@ final class ProgramPages
             'programs' => $programs,
             'selectedPillar' => $selectedPillar,
             'statusFilter' => $statusFilter,
-            'statusOptions' => TjslSubmissionStatusFilter::options(true),
+            'statusOptions' => TjslSubmissionStatusFilter::programOptions(true),
         ]);
     }
 
     public function create(): View
     {
-        return view('admin.programs.cooperation-choice');
+        $program = new Program;
+        $program->fill(['jenis_kerjasama' => 'pks', 'tipe_kerjasama' => 'PKS']);
+
+        return view('admin.programs.form', [
+            'program' => $program,
+            'pillars' => Pillar::all(),
+            'editable' => true,
+            'legacyForm' => false,
+        ]);
     }
 
     public function createCooperationForm(string $jenisKerjasama): View
@@ -50,6 +58,7 @@ final class ProgramPages
             'program' => $program,
             'pillars' => Pillar::all(),
             'editable' => true,
+            'legacyForm' => true,
         ]);
     }
 
@@ -58,7 +67,7 @@ final class ProgramPages
         $this->workflow->own($request, $program);
 
         return view('admin.programs.form', [
-            'program' => $program->load('pillar', 'documents', 'photos', 'tujuan'),
+            'program' => $program->load('pillar', 'documents', 'photos', 'tujuan', 'assistanceItems', 'verificationVendors', 'logs.changer'),
             'pillars' => Pillar::all(),
             'editable' => $program->canBeEdited(),
         ]);
@@ -78,5 +87,10 @@ final class ProgramPages
             'bastDocument' => $program->documents->firstWhere('document_type', 'bast'),
             'editable' => $program->canUploadBast(),
         ]);
+    }
+
+    public function authorizeOwner(Request $request, Program $program): void
+    {
+        $this->workflow->own($request, $program);
     }
 }

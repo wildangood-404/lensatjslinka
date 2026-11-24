@@ -198,10 +198,15 @@
                             @readonly($readonly)
                         >
                         @if ($editable)
-                            <input
-                                type="file"
-                                name="documents[{{ $type }}][file]"
-                            >
+                            <div class="document-file-picker">
+                                <input
+                                    id="assistance-document-{{ $type }}-file"
+                                    type="file"
+                                    name="documents[{{ $type }}][file]"
+                                >
+                                <label for="assistance-document-{{ $type }}-file">Pilih File</label>
+                                <span class="document-file-name" data-file-name aria-live="polite">Belum ada file dipilih</span>
+                            </div>
                         @else
                             <span></span>
                         @endif
@@ -218,26 +223,11 @@
 
                             @if ($editable && $existing)
                                 <button
-                                    type="button"
-                                    class="action-change"
-                                    onclick="this.closest('.document-row').querySelector('input[type=file]').click()"
-                                >
-                                    Ganti
-                                </button>
-                                <button
                                     type="submit"
                                     form="delete-assistance-doc-{{ $existing->id }}"
                                     class="action-delete"
                                 >
                                     Hapus
-                                </button>
-                            @elseif ($editable)
-                                <button
-                                    type="button"
-                                    class="action-upload"
-                                    onclick="this.closest('.document-row').querySelector('input[type=file]').click()"
-                                >
-                                    Unggah
                                 </button>
                             @endif
                         </div>

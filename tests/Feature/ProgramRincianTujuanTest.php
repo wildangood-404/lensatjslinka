@@ -293,9 +293,11 @@ class ProgramRincianTujuanTest extends TestCase
         $this->actingAs($this->user, 'admin')
             ->get(route('admin.programs.show', $program))
             ->assertOk()
-            ->assertSee('name="tujuan_program"', false)
-            ->assertSee('Tujuan lama pertama')
-            ->assertSee('Tujuan lama kedua')
+            ->assertDontSee('name="tujuan_program"', false)
+            ->assertDontSee('name="sasaran_program"', false)
+            ->assertDontSee('name="lokasi_program"', false)
+            ->assertDontSee('Tujuan lama pertama')
+            ->assertDontSee('Tujuan lama kedua')
             ->assertDontSee('Tambah Tujuan Program');
 
         $program->update(['status' => 'approved_fase1']);

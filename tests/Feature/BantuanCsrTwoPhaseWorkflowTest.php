@@ -73,6 +73,8 @@ class BantuanCsrTwoPhaseWorkflowTest extends TestCase
             ->assertSee('Lingkungan')
             ->assertSee('Hukum &amp; Tata Kelola', false)
             ->assertSee('name="documents[A][file]"', false)
+            ->assertSee('Pilih File')
+            ->assertDontSee('>Unggah</button>', false)
             ->assertSee('Proposal Pengajuan Program')
             ->assertSee('name="documents[B][file]"', false)
             ->assertSee('Kelengkapan Survei')
@@ -180,6 +182,8 @@ class BantuanCsrTwoPhaseWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('Berita Acara Serah Terima (BAST)')
             ->assertSee('name="dokumen_f"', false)
+            ->assertSee('Pilih File')
+            ->assertDontSee('>Unggah</button>', false)
             ->assertDontSee('name="documents[A][file]"', false)
             ->assertDontSee('name="documents[B][file]"', false);
 

@@ -22,27 +22,10 @@
 
         <div class="space-y-5">
             @forelse ($programs as $program)
-                @php
-                    $backgroundColor = $program->pillar?->color_hex ?? '#64748b';
-                @endphp
-
-                <a
-                    href="{{ route('admin.programs.show', $program) }}"
-                    data-program-status="{{ $program->status }}"
-                    class="flex min-h-20.75 items-center justify-between gap-4 rounded-md px-3 py-3 text-white shadow-md"
-                    @style(['background:'.$backgroundColor])
-                >
-                    <span>
-                        <strong class="block text-lg">
-                            {{ $program->nama_program }}
-                        </strong>
-                        <small>{{ $program->updated_at->format('H.i d/m/Y') }}</small>
-                    </span>
-
-                    <span class="flex items-center gap-3">
-                        @include('admin.partials.status-badge', ['status' => $program->status, 'phaseTwoRejected' => filled($program->fase2_rejected_reason)])
-                    </span>
-                </a>
+                @include('admin.programs.partials.status-card', [
+                    'program' => $program,
+                    'detailRouteName' => 'admin.programs.show',
+                ])
             @empty
                 <p class="rounded-xl border bg-white p-8 text-center text-slate-500">
                     Belum ada program dengan status {{ $statusOptions[$statusFilter] }}{{ $selectedPillar ? ' pada kategori '.$selectedPillar->name : '' }}.

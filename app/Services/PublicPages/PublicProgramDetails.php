@@ -115,7 +115,7 @@ class PublicProgramDetails
             'jenis' => 'internal',
             'jenis_kerjasama' => $program->jenis_kerjasama ?: 'pks',
             'slug' => $program->slug,
-            'pillar' => $program->pillar->slug,
+            'pillar' => \Illuminate\Support\Str::slug((string) $program->effective_pilar),
             'title' => $program->nama_program,
             'status' => $program->status,
             'detail_url' => route('program.detail', $program->slug),

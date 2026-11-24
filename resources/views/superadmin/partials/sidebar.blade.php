@@ -17,16 +17,6 @@
     </div>
 </div>
 
-<div class="super-menu-group">
-    <button type="button" data-sidebar-toggle="assistance-menu" class="super-menu-button">
-        <span><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m12 2.75 8 4.5v9.5l-8 4.5-8-4.5v-9.5l8-4.5Zm0 9 8-4.5M12 11.75l-8-4.5M12 11.75v9.5"/></svg><span class="nav-label">Overview Bantuan TJSL</span></span>
-        <svg data-chevron class="menu-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
-    </button>
-    <div id="assistance-menu" class="super-submenu {{ request()->routeIs('superadmin.assistance.*')?'':'hidden' }}">
-        <a href="{{ route('superadmin.assistance.index') }}">Status Bantuan TJSL</a>
-    </div>
-</div>
-
 <a href="{{ route('superadmin.users.index') }}" class="super-menu-link {{ request()->routeIs('superadmin.users.*')?'is-active':'' }}">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16 20v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 18.5V20M10 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7.5 1a3 3 0 0 0 0-6M19 20v-1.5a4 4 0 0 0-2.5-3.7"/></svg><span class="nav-label">User</span>
 </a>

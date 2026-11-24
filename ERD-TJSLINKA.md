@@ -2,6 +2,8 @@
 
 ERD ini disusun dari **53 tabel dan 61 foreign key yang benar-benar ada** pada skema MySQL yang sedang dipakai aplikasi lokal, diperiksa pada 5 Oktober 2026. Seluruh 54 migrasi terdaftar berstatus `Ran`. Pemeriksaan hanya membaca metadata skema; tidak mengubah data.
 
+Catatan pembaruan: migrasi `2026_11_17_000001_add_program_submission_workflow` menambahkan kolom alur pengajuan pada `programs` dan `program_documents`, serta tabel `program_logs`. Migrasi `2026_11_23_000001_add_program_proposal_details` menambahkan detail proposal dan tabel `program_assistance_items`. Diagram di bawah mencantumkan perubahan tersebut di atas snapshot Oktober; jalankan migrasi sebelum mengandalkan skema terbaru.
+
 Diagram dipisah per modul agar dapat dibaca. Kolom dalam kotak adalah **kolom kunci dan contoh atribut penting**, bukan daftar seluruh kolom. Garis utuh hanya menyatakan foreign key fisik di database. `o|` di sisi tabel induk berarti foreign key pada anak boleh `NULL`; `||` berarti wajib. `o{` berarti satu induk dapat mempunyai nol atau banyak baris anak. Relasi aktor ke `users` dirinci terpisah setelah diagram supaya garis tidak menutupi relasi bisnis.
 
 ## 1. Program TJSL dan Bantuan TJSL
@@ -19,13 +21,44 @@ erDiagram
         bigint created_by FK
         varchar slug UK
         enum jenis_kerjasama
+        varchar tipe_kerjasama
+        varchar jenis_pengajuan
+        varchar nama_mitra
+        varchar no_surat
+        date tanggal_surat
+        date tanggal_program
+        json jenis_bantuan
+        bigint nominal_uang_tunai
+        text detail_jasa
+        varchar pic_nama
+        varchar pic_telepon
+        varchar kategori_program
         varchar status
+        text catatan_terakhir
+    }
+    program_assistance_items {
+        bigint id PK
+        bigint program_id FK
+        enum tipe
+        varchar nama_item
+        varchar jumlah
+        varchar keterangan
     }
     program_documents {
         bigint id PK
         bigint program_id FK
         varchar document_type
+        varchar kategori_tahap
+        varchar nama_file_asli
         varchar file_path
+    }
+    program_logs {
+        bigint id PK
+        bigint program_id FK
+        varchar from_status
+        varchar to_status
+        bigint changed_by FK
+        text catatan
     }
     program_photos {
         bigint id PK
@@ -87,6 +120,8 @@ erDiagram
     pillars o|--o{ program_eksternal : pillar_id
     programs o|--o{ bantuan_csr : program_id
     programs ||--o{ program_documents : program_id
+    programs ||--o{ program_logs : program_id
+    programs ||--o{ program_assistance_items : program_id
     programs ||--o{ program_photos : program_id
     programs ||--o{ program_tujuan : program_id
     bantuan_csr ||--o{ bantuan_csr_details : bantuan_csr_id
@@ -285,6 +320,7 @@ Semua kolom di bawah ini **FK fisik ke `users.id`**. Kolom `created_by` pada `pr
 | Tabel | Kolom FK ke `users.id` |
 |---|---|
 | `programs` | `created_by`, `reviewed_by`, `fase1_reviewed_by`, `fase2_reviewed_by` |
+| `program_logs` | `changed_by` |
 | `bantuan_csr` | `created_by`, `reviewed_by`, `fase1_reviewed_by`, `fase2_reviewed_by` |
 | `program_eksternal` | `created_by`, `tahap2_reviewed_by`, `tahap3_reviewed_by` |
 | `notifications` | `user_id` |
