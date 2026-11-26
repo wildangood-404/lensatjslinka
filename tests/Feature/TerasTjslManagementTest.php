@@ -53,7 +53,7 @@ class TerasTjslManagementTest extends TestCase
             ->post(route('admin.teras.products.store'), [
                 'nama_produk' => 'Keripik Testing Teras',
                 'nama_umkm' => 'UMKM Testing',
-                'foto' => UploadedFile::fake()->image('keripik.jpg', 800, 800),
+                'foto' => $this->fakeImage('keripik.jpg'),
                 'deskripsi' => 'Produk uji integrasi Teras TJSL.',
                 'is_active' => '1',
             ])
@@ -100,7 +100,7 @@ class TerasTjslManagementTest extends TestCase
         $this->actingAs($admin, 'admin')
             ->post(route('admin.teras.packages.store'), [
                 'nama_paket' => 'Paket Testing Maksimal',
-                'foto' => UploadedFile::fake()->image('paket.jpg', 1000, 800),
+                'foto' => $this->fakeImage('paket.jpg'),
                 'harga' => 975000,
                 'tipe_harga' => 'maksimal',
                 'isi_paket' => [

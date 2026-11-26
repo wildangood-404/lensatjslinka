@@ -84,12 +84,6 @@
 
             @endunless
 
-            @unless($mustChangePassword)
-            <a href="{{ route('monitoring.tjsl') }}" class="pumk-nav-link">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16v14H4zM7 15l3-3 2 2 4-5 2 2"/></svg>
-                <span class="pumk-nav-label">Monitoring</span>
-            </a>
-            @endunless
             <form method="POST" action="{{ route('pumk-admin.logout') }}" class="pumk-logout">
                 @csrf
                 <button type="submit">Keluar</button>

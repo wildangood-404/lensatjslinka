@@ -66,7 +66,7 @@ class SubmissionWorkflowFixTest extends TestCase
                 ],
             ],
             'photo_caption' => 'Dokumentasi kegiatan lapangan',
-            'photos' => [UploadedFile::fake()->image('dokumentasi.jpg')->size(6144)],
+            'photos' => [$this->fakeImage('dokumentasi.jpg', 6144)],
             'action' => 'draft',
         ]);
 
@@ -80,7 +80,7 @@ class SubmissionWorkflowFixTest extends TestCase
         $this->actingAs($program->creator, 'admin')->post(route('admin.programs.bast.store', $program), [
             'dokumen_f' => UploadedFile::fake()->create('bast.pdf', 100, 'application/pdf'),
             'phase2_photo_captions' => ['Dokumentasi kegiatan lapangan'],
-            'phase2_photos' => [UploadedFile::fake()->image('dokumentasi.jpg')->size(6144)],
+            'phase2_photos' => [$this->fakeImage('dokumentasi.jpg', 6144)],
         ])->assertSessionHasNoErrors();
 
         $program->refresh();

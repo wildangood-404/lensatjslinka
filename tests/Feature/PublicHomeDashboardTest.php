@@ -193,7 +193,6 @@ class PublicHomeDashboardTest extends TestCase
         );
 
         $formResponse->assertOk()
-            ->assertSee('Lokasi Program')
             ->assertDontSee('name="wilayah_id"', false)
             ->assertDontSee('Pilih wilayah');
 

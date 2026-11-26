@@ -342,8 +342,8 @@ class BantuanCsrTwoPhaseWorkflowTest extends TestCase
                 '',
             ],
             'phase2_photos' => [
-                UploadedFile::fake()->image('penyerahan.jpg', 1200, 800),
-                UploadedFile::fake()->image('penerima.png', 1200, 800),
+                $this->fakeImage('penyerahan.jpg'),
+                $this->fakeImage('penerima.png'),
             ],
         ])->assertRedirect(route('admin.assistance.phase2', $item))
             ->assertSessionHasNoErrors();
@@ -429,9 +429,7 @@ class BantuanCsrTwoPhaseWorkflowTest extends TestCase
                         100,
                         'application/pdf',
                     ),
-                    UploadedFile::fake()
-                        ->image('foto-terlalu-besar.jpg')
-                        ->size(20481),
+                    $this->fakeImage('foto-terlalu-besar.jpg', 20481),
                 ],
             ])
             ->assertSessionHasErrors([

@@ -164,9 +164,9 @@ class AdminPhaseTwoTest extends TestCase
             ->assertSee('admin-sidebar')
             ->assertSee('admin-main')
             ->assertSee('lensa-tjsl-inka-navbar.png')
-            ->assertSee('Dashboard Admin TJSL')
-            ->assertSee('Hukum &amp; Tata Kelola', false)
-            ->assertSee('Program TJSL')
+            ->assertSee('Portal Informasi TJSL &amp; PUMK PT INKA (Persero)', false)
+            ->assertSee('News &amp; Kegiatan TJSL', false)
+            ->assertSee('Grafik &amp; Capaian', false)
             ->assertDontSee('Overview Bantuan TJSL')
             ->assertDontSee('Status Bantuan TJSL')
             ->assertDontSee('Buat Bantuan TJSL')
@@ -234,7 +234,7 @@ class AdminPhaseTwoTest extends TestCase
             ->assertDontSee('Formulir Kajian Proposal');
     }
 
-    public function test_admin_dashboard_has_one_clickable_block_per_pillar_and_filtered_detail_list(): void
+    public function test_admin_home_uses_the_unified_showcase_and_filtered_detail_list(): void
     {
         $admin = $this->admin();
         $pillar = Pillar::create([
@@ -260,10 +260,9 @@ class AdminPhaseTwoTest extends TestCase
 
         $dashboard = $this->actingAs($admin, 'admin')->get(route('admin.home'));
         $dashboard->assertOk()
-            ->assertSee('data-pillar="hukum-tata-kelola"', false)
-            ->assertSee('Program TJSL Hukum &amp; Tata Kelola', false)
-            ->assertSee('6 Program');
-        $this->assertSame(1, substr_count($dashboard->getContent(), 'data-pillar="hukum-tata-kelola"'));
+            ->assertSee('News &amp; Kegiatan TJSL', false)
+            ->assertSee('Grafik &amp; Capaian', false)
+            ->assertSee('1. Program TJSL');
 
         $list = $this->get(route('admin.programs.index', ['pillar' => 'hukum-tata-kelola']));
         $list->assertOk()->assertSee('Kategori: Hukum &amp; Tata Kelola', false);

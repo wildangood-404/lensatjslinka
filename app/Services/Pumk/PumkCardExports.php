@@ -36,7 +36,7 @@ class PumkCardExports
     ): Response {
         $data = $this->kartuExportData($mitra, $pinjaman, $kartuPiutang, PumkYearFilter::requestedYear($request) ?? 'terbaru');
         $logoPath = public_path('images/logo/inka.png');
-        $data['logoDataUri'] = is_file($logoPath)
+        $data['logoDataUri'] = extension_loaded('gd') && is_file($logoPath)
             ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($logoPath))
             : null;
 

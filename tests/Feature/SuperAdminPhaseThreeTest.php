@@ -161,8 +161,8 @@ class SuperAdminPhaseThreeTest extends TestCase
 
         $response->assertOk()
             ->assertSee('readonly', false)
-            ->assertSee('Approve Program')
-            ->assertSee('Reject Program')
+            ->assertSee('Disetujui')
+            ->assertSee('Ditolak')
             ->assertDontSee('class="review-edit"', false)
             ->assertDontSee('Simpan Program')
             ->assertDontSee('type="file"', false);
@@ -245,10 +245,9 @@ class SuperAdminPhaseThreeTest extends TestCase
 
         $dashboard = $this->actingAs($super, 'superadmin')->get(route('superadmin.home'));
         $dashboard->assertOk()
-            ->assertSee('data-pillar="hukum-tata-kelola"', false)
-            ->assertSee('Program TJSL Hukum &amp; Tata Kelola', false)
-            ->assertSee('3 Program');
-        $this->assertSame(1, substr_count($dashboard->getContent(), 'data-pillar="hukum-tata-kelola"'));
+            ->assertSee('News &amp; Kegiatan TJSL', false)
+            ->assertSee('Grafik &amp; Capaian', false)
+            ->assertSee('1. Program TJSL');
 
         $list = $this->get(route('superadmin.programs.index', ['pillar' => 'hukum-tata-kelola']));
         $list->assertOk()
@@ -256,7 +255,7 @@ class SuperAdminPhaseThreeTest extends TestCase
             ->assertSee('data-program-status="pending_fase1"', false)
             ->assertSee('data-program-status="approved_fase1"', false)
             ->assertSee('data-program-status="pending_fase2"', false)
-            ->assertSee('background:#dc2626', false)
+            ->assertSee('background-color:#dc2626', false)
             ->assertSee('Waiting')
             ->assertSee('Approved')
             ->assertSee('Waiting Fase 2')

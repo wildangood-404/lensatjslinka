@@ -54,7 +54,7 @@ class PumkPaymentProofTest extends TestCase
         $this->patch(route('pumk-admin.mitra.angsuran.update', [$mitra, $pinjaman, $angsuran]), [
             'periode' => '2026-01', 'nomor_bukti' => 'BKM/2026/001-R',
             'pokok' => '100000', 'bunga' => '10000', 'denda' => '-',
-            'bukti_pembayaran' => UploadedFile::fake()->image('bukti-revisi.jpg'),
+            'bukti_pembayaran' => $this->fakeImage('bukti-revisi.jpg'),
         ])->assertRedirect()->assertSessionHasNoErrors();
         $angsuran->refresh();
         $this->assertSame('bukti-revisi.jpg', $angsuran->bukti_pembayaran_nama_asli);
@@ -86,7 +86,7 @@ class PumkPaymentProofTest extends TestCase
         [$mitraImage, $pinjamanImage] = $this->loan('gambar');
         $this->post(route('pumk-admin.mitra.angsuran.store', [$mitraImage, $pinjamanImage]), [
             'periode' => '2026-01', 'pokok' => '1000', 'bunga' => '-', 'denda' => '-',
-            'bukti_pembayaran' => UploadedFile::fake()->image('bukti.png'),
+            'bukti_pembayaran' => $this->fakeImage('bukti.png'),
         ])->assertSessionHasNoErrors();
         $this->assertSame('bukti.png', PumkAngsuran::where('pinjaman_id', $pinjamanImage->id)->firstOrFail()->bukti_pembayaran_nama_asli);
 
@@ -185,7 +185,7 @@ class PumkPaymentProofTest extends TestCase
         ]);
         $this->patch(route('pumk-admin.mitra.angsuran.update', [$mitra, $pinjaman, $imported]), [
             'periode' => '2026-02', 'pokok' => '1000', 'bunga' => '-', 'denda' => '-',
-            'bukti_pembayaran' => UploadedFile::fake()->image('tidak-boleh.png'),
+            'bukti_pembayaran' => $this->fakeImage('tidak-boleh.png'),
         ])->assertForbidden();
         $this->assertNull($imported->fresh()->bukti_pembayaran_path);
     }

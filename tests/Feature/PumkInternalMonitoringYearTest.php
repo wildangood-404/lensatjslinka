@@ -548,7 +548,7 @@ class PumkInternalMonitoringYearTest extends TestCase
             ->assertDontSee('leaflet@1.9.4/dist/leaflet.js')
             ->assertDontSee('id="per-pilar-chart"', false)
             ->assertDontSee('id="pumk-portfolio-chart"', false);
-        $this->get(route('home', ['pumk_year' => 2026]))
+        $this->get(route('monitoring.dashboard', ['pumk_year' => 2026]))
             ->assertRedirect(route('monitoring.bri', ['pumk_year' => 2026]));
     }
 

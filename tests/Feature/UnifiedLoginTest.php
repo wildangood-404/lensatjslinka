@@ -27,7 +27,7 @@ class UnifiedLoginTest extends TestCase
 
     public function test_all_entry_aliases_offer_the_same_form(): void
     {
-        $this->get('/')->assertRedirect(route('login'));
+        $this->get('/')->assertOk()->assertSee('Masuk / Login');
         $this->get(route('login'))->assertOk()->assertSee('action="'.route('login.store').'"', false);
 
         foreach (['admin.login', 'superadmin.login', 'pumk-admin.login'] as $route) {
@@ -35,7 +35,7 @@ class UnifiedLoginTest extends TestCase
         }
     }
 
-    public function test_every_role_uses_one_login_and_can_visit_monitoring_without_another_login(): void
+    public function test_every_role_uses_one_login_and_the_shared_home_showcase(): void
     {
         foreach ([
             ['admin', 'admin.home', 'admin'],
@@ -51,11 +51,12 @@ class UnifiedLoginTest extends TestCase
             $this->assertAuthenticatedAs($account, 'web');
             $this->assertAuthenticatedAs($account, $guard);
             $this->get(route('home'))->assertOk()
-                ->assertSee(route($dashboard), false)
-                ->assertSee('Dashboard Saya');
+                ->assertSee('News &amp; Kegiatan TJSL', false)
+                ->assertSee('Grafik &amp; Capaian', false);
             $this->get(route($dashboard))->assertOk()
-                ->assertSee('href="'.route('home').'"', false);
-            $this->get('/')->assertRedirect(route($dashboard));
+                ->assertSee('News &amp; Kegiatan TJSL', false)
+                ->assertSee('Grafik &amp; Capaian', false);
+            $this->get('/')->assertOk()->assertSee('Masuk / Login');
             $this->get(route('login'))->assertRedirect(route($dashboard));
 
             $this->post(route('public.logout'))->assertRedirect(route('login'));

@@ -22,7 +22,11 @@ class ExampleTest extends TestCase
         Program::create(['slug' => 'program-jaminan-sosial-pekerja-rentan', 'pillar_id' => $pillar->id, 'nama_program' => 'Program Jaminan Sosial Pekerja Rentan', 'deskripsi_program' => 'Deskripsi', 'sasaran_program' => 'Sasaran', 'lokasi_program' => 'Madiun', 'mitra_program' => 'Mitra', 'rencana_anggaran' => 100, 'realisasi_anggaran' => 50, 'tujuan_program' => 'Tujuan', 'status' => 'completed', 'created_by' => $user->id]);
         $this->get('/login')->assertOk()->assertSee('USERNAME');
         $this->actingAs($user, 'web');
-        $this->get(route('home'))->assertOk()->assertSee('Realisasi Anggaran Program TJSL');
+        $this->get('/')->assertOk()->assertSee('Masuk / Login');
+        $this->get(route('home'))->assertOk()
+            ->assertSee('Portal Informasi TJSL &amp; PUMK PT INKA (Persero)', false)
+            ->assertSee('News &amp; Kegiatan TJSL', false)
+            ->assertSee('Grafik &amp; Capaian', false);
         $this->get('/teras-tjsl')->assertOk()->assertSee('Paket Produk Teras TJSL');
         $this->get('/program-tjsl/overview')
             ->assertOk()

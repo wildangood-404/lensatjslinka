@@ -64,6 +64,7 @@ class PumkCollectibilitySummaryTest extends TestCase
         $this->assertSame([
             'lancar' => '786768.00', 'kurang_lancar' => '500000.00',
             'diragukan' => '0.00', 'macet' => '2100000.00',
+            'bermasalah' => '0.00',
             'belum_dinilai' => '250000.00',
         ], $result['nominal']);
         $this->assertSame('3636768.00', $result['subtotal']);
@@ -79,6 +80,7 @@ class PumkCollectibilitySummaryTest extends TestCase
             'kurang_lancar' => ['Total Sisa Kurang Lancar:', 'Rp500.000'],
             'diragukan' => ['Total Sisa Diragukan:', 'Rp0'],
             'macet' => ['Total Sisa Macet:', 'Rp2.100.000'],
+            'bermasalah' => ['Total Sisa Bermasalah:', 'Rp0'],
         ] as $category => [$label, $amount]) {
             $this->get(route('pumk-admin.mitra.index', ['kolektibilitas' => $category]))
                 ->assertOk()->assertSee('class="pumk-collectibility-footer"', false)->assertSee($label)->assertSee($amount)

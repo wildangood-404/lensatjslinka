@@ -248,8 +248,8 @@ class ProgramTwoPhaseWorkflowTest extends TestCase
                 'Foto tambahan kedua',
             ],
             'phase2_photos' => [
-                UploadedFile::fake()->image('serah-terima.jpg', 1200, 800),
-                UploadedFile::fake()->image('foto-kedua.jpg', 1200, 800),
+                $this->fakeImage('serah-terima.jpg'),
+                $this->fakeImage('foto-kedua.jpg'),
             ],
         ])->assertRedirect(route('admin.programs.phase2', $program));
 
@@ -260,9 +260,9 @@ class ProgramTwoPhaseWorkflowTest extends TestCase
         $this->actingAs($this->superAdmin, 'superadmin')
             ->get(route('superadmin.programs.show', [$program, 'edit' => 1]))
             ->assertOk()
-            ->assertSee('Lihat BAST')
-            ->assertSee('Approve BAST')
-            ->assertSee('Reject BAST')
+            ->assertSee('Unduh BAST')
+            ->assertSee('Disetujui')
+            ->assertSee('Ditolak')
             ->assertDontSee('type="file"', false)
             ->assertDontSee('class="review-edit"', false);
 

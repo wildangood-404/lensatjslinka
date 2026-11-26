@@ -4,6 +4,8 @@ namespace Tests;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Http\Testing\File;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use RuntimeException;
 
@@ -22,6 +24,19 @@ abstract class TestCase extends BaseTestCase
         Auth::guard('web')->setUser($user);
 
         return parent::actingAs($user, $guard ?? 'web');
+    }
+
+    protected function fakeImage(string $name, ?int $kilobytes = null): File
+    {
+        $content = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jXioAAAAASUVORK5CYII=', true);
+
+        if ($content === false) {
+            throw new RuntimeException('Invalid built-in PNG fixture.');
+        }
+
+        $file = UploadedFile::fake()->createWithContent($name, $content);
+
+        return $kilobytes === null ? $file : $file->size($kilobytes);
     }
 
     /**

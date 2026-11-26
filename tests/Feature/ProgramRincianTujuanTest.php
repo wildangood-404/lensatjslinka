@@ -163,11 +163,11 @@ class ProgramRincianTujuanTest extends TestCase
             'order' => 0,
         ]);
         $detail->photos()->create([
-            'file_path' => UploadedFile::fake()->image('detail.jpg')->store('csr/detail', 'public'),
+            'file_path' => $this->fakeImage('detail.jpg')->store('csr/detail', 'public'),
             'caption' => 'Foto penyaluran',
         ]);
         $csr->photos()->create([
-            'file_path' => UploadedFile::fake()->image('bast.jpg')->store('csr/photos', 'public'),
+            'file_path' => $this->fakeImage('bast.jpg')->store('csr/photos', 'public'),
             'caption' => 'Foto utama bantuan',
             'order' => 0,
         ]);
@@ -213,7 +213,7 @@ class ProgramRincianTujuanTest extends TestCase
 
         $program = $this->program('Program Dokumen Internal', $this->social, 'completed');
         $program->photos()->create([
-            'file_path' => UploadedFile::fake()->image('realisasi.jpg')->store('program/photos', 'public'),
+            'file_path' => $this->fakeImage('realisasi.jpg')->store('program/photos', 'public'),
             'caption' => 'Dokumentasi realisasi',
             'is_cover' => true,
             'order' => 0,

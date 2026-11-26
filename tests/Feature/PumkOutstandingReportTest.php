@@ -113,7 +113,6 @@ class PumkOutstandingReportTest extends TestCase
 
         $newListUrl = route('pumk-admin.umkm-binaan.index');
         $profileUrl = route('pumk-admin.umkm-binaan.show', $mitra);
-        $createUrl = route('pumk-admin.mitra.create');
 
         $this->get($newListUrl)
             ->assertOk()
@@ -130,13 +129,16 @@ class PumkOutstandingReportTest extends TestCase
             ->assertSee('Sektor Profil')
             ->assertSee('Kartu Piutang');
         $this->get(route('pumk-admin.mitra.index'))->assertOk();
-        $this->get(route('pumk-admin.home'))
+        $dashboard = $this->get(route('pumk-admin.home'));
+        $dashboard
             ->assertOk()
             ->assertSee('UMKM Binaan')
             ->assertSee('Report Outstanding')
             ->assertSee('Daftar UMKM Binaan')
             ->assertSee('href="'.$newListUrl.'"', false)
-            ->assertSee('href="'.$createUrl.'"', false);
+            ->assertSee('Lihat Daftar Mitra')
+            ->assertSee('Tambah Mitra Binaan');
+        $this->assertSame(3, substr_count($dashboard->getContent(), 'href="'.$newListUrl.'"'));
     }
 
     private function pumkAdmin(): User
