@@ -81,13 +81,15 @@ class UmkmMonitoringTest extends TestCase
         $mitra = $this->mitra();
 
         $this->from(route('pumk-admin.umkm-binaan.show', ['mitra' => $mitra, 'tab' => 'monitoring']))
+            ->followingRedirects()
             ->post(route('pumk-admin.umkm-binaan.monitoring.store', $mitra), [
                 'periode_tahun' => 2026,
                 'jenis_kunjungan' => 'Kunjungan Rutin',
                 'tindak_lanjut' => 'Hubungi mitra kembali.',
                 'dokumentasi' => [UploadedFile::fake()->createWithContent('catatan.txt', 'bukan dokumentasi yang diizinkan')],
             ])
-            ->assertSessionHasErrors('dokumentasi.0');
+            ->assertOk()
+            ->assertSee('must be a file of type');
 
         $this->assertDatabaseCount('umkm_monitorings', 0);
     }
@@ -129,6 +131,18 @@ class UmkmMonitoringTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_bri_partner_cannot_use_the_regular_monitoring_update_route(): void
+    {
+        $this->actingAs($this->pumkAdmin(), 'pumk');
+        $mitra = $this->mitra('Mitra BRI', 'bri');
+
+        $this->post(route('pumk-admin.umkm-binaan.monitoring.store', $mitra), [
+            'periode_tahun' => 2026,
+            'jenis_kunjungan' => 'Kunjungan Rutin',
+            'tindak_lanjut' => 'Kunjungan rutin.',
+        ])->assertNotFound();
+    }
+
     private function pumkAdmin(): User
     {
         return User::factory()->create([
@@ -139,10 +153,11 @@ class UmkmMonitoringTest extends TestCase
         ]);
     }
 
-    private function mitra(string $name = 'Mitra Monitoring'): PumkMitra
+    private function mitra(string $name = 'Mitra Monitoring', string $category = 'reguler'): PumkMitra
     {
         return PumkMitra::create([
             'nama_mitra' => $name,
+            'kategori_binaan' => $category,
             'source_key' => hash('sha256', $name.microtime(true)),
             'is_active' => true,
         ]);
