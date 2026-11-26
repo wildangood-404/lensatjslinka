@@ -128,7 +128,10 @@ class PumkMitraPages
     public function edit(Request $request, PumkMitra $mitra): View
     {
         $request->validate(['new_loan' => ['prohibited']]);
-        $mitra->load(['pinjaman' => fn ($query) => $query->with('dokumenKontrak')->latest('id')]);
+        $mitra->load([
+            'dokumenPendukung',
+            'pinjaman' => fn ($query) => $query->with('dokumenKontrak')->latest('id'),
+        ]);
         $id = $request->integer('pinjaman');
         $pinjaman = $id
             ? $mitra->pinjaman->firstWhere('id', $id)

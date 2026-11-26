@@ -16,6 +16,7 @@ use App\Services\Pumk\PumkDocumentResponses;
 use App\Services\Pumk\PumkInstallmentChanges;
 use App\Services\Pumk\PumkLoanDocumentService;
 use App\Services\Pumk\PumkLoanSettlementService;
+use App\Services\Pumk\PumkLoanSnapshotService;
 use App\Services\Pumk\PumkMitraChanges;
 use App\Services\Pumk\PumkMitraOwnership;
 use App\Services\Pumk\PumkMitraPages;
@@ -44,8 +45,10 @@ class PumkMitraController extends Controller
         PumkActivityLogger $activity,
         PumkLoanDocumentService $documents,
         PumkClassificationService $classifications,
+        PumkLoanSnapshotService $snapshots,
+        PumkLoanSettlementService $settlement,
     ): RedirectResponse {
-        return app(PumkMitraChanges::class)->store($request, $calculator, $activity, $documents, $classifications);
+        return app(PumkMitraChanges::class)->store($request, $calculator, $activity, $documents, $classifications, $snapshots, $settlement);
     }
 
     public function show(Request $request, PumkMitra $mitra, KartuPiutangService $kartuPiutang, PumkLoanSettlementService $settlement): View
@@ -65,8 +68,10 @@ class PumkMitraController extends Controller
         PumkActivityLogger $activity,
         PumkLoanDocumentService $documents,
         PumkClassificationService $classifications,
+        PumkLoanSnapshotService $snapshots,
+        PumkLoanSettlementService $settlement,
     ): RedirectResponse {
-        return app(PumkMitraChanges::class)->update($request, $mitra, $calculator, $activity, $documents, $classifications);
+        return app(PumkMitraChanges::class)->update($request, $mitra, $calculator, $activity, $documents, $classifications, $snapshots, $settlement);
     }
 
     public function reopen(Request $request, PumkMitra $mitra, PumkPinjaman $pinjaman, PumkLoanSettlementService $settlement): RedirectResponse

@@ -3,10 +3,10 @@
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminBantuanCsrController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminNewsController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminProfileController;
 use App\Http\Controllers\AdminProgramController;
-use App\Http\Controllers\AdminNewsController;
 use App\Http\Controllers\AdminTerasPaketController;
 use App\Http\Controllers\AdminTerasProdukController;
 use App\Http\Controllers\MonitoringUploadController;
@@ -18,6 +18,9 @@ use App\Http\Controllers\PumkAdminDashboardController;
 use App\Http\Controllers\PumkBriPlanningController;
 use App\Http\Controllers\PumkMitraController;
 use App\Http\Controllers\PumkMonitoringDiagnosticsController;
+use App\Http\Controllers\PumkOutstandingReportController;
+use App\Http\Controllers\PumkUmkmBinaanController;
+use App\Http\Controllers\PumkUmkmBinaanImportController;
 use App\Http\Controllers\SuperAdminAuthController;
 use App\Http\Controllers\SuperAdminBantuanCsrController;
 use App\Http\Controllers\SuperAdminDashboardController;
@@ -124,6 +127,34 @@ Route::prefix('admin-pumk')->name('pumk-admin.')->group(function () {
         Route::post('/logout', [PublicAuthController::class, 'logout'])->name('logout');
         Route::redirect('/', '/admin-pumk/home')->name('dashboard');
         Route::get('/home', PumkAdminDashboardController::class)->name('home');
+        Route::get('/umkm-binaan/report-outstanding', PumkOutstandingReportController::class)->name('umkm-binaan.report-outstanding');
+        Route::get('/umkm-binaan/daftar', [PumkMitraController::class, 'index'])->name('umkm-binaan.index');
+        Route::get('/umkm-binaan/template.xlsx', [PumkUmkmBinaanImportController::class, 'template'])->name('umkm-binaan.template');
+        Route::post('/umkm-binaan/import', [PumkUmkmBinaanImportController::class, 'import'])->name('umkm-binaan.import');
+        Route::get('/umkm-binaan/{mitra}/edit', [PumkMitraController::class, 'edit'])
+            ->whereNumber('mitra')
+            ->name('umkm-binaan.edit');
+        Route::get('/umkm-binaan/{mitra}/foto', [PumkUmkmBinaanController::class, 'photo'])
+            ->whereNumber('mitra')
+            ->name('umkm-binaan.photo');
+        Route::get('/umkm-binaan/{mitra}/dokumen/{document}/unduh', [PumkUmkmBinaanController::class, 'downloadDocument'])
+            ->whereNumber('mitra')
+            ->name('umkm-binaan.documents.download');
+        Route::get('/umkm-binaan/{mitra}/dokumen/{document}/lihat', [PumkUmkmBinaanController::class, 'viewDocument'])
+            ->whereNumber('mitra')
+            ->name('umkm-binaan.documents.view');
+        Route::get('/umkm-binaan/{mitra}/pinjaman/{pinjaman}/dokumen/{document}/lihat', [PumkUmkmBinaanController::class, 'viewLoanDocument'])
+            ->whereNumber('mitra')
+            ->name('umkm-binaan.loans.documents.view');
+        Route::get('/umkm-binaan/{mitra}/pinjaman/{pinjaman}/dokumen/{document}/unduh', [PumkUmkmBinaanController::class, 'downloadLoanDocument'])
+            ->whereNumber('mitra')
+            ->name('umkm-binaan.loans.documents.download');
+        Route::delete('/umkm-binaan/{mitra}/dokumen/{document}', [PumkUmkmBinaanController::class, 'destroyDocument'])
+            ->whereNumber('mitra')
+            ->name('umkm-binaan.documents.destroy');
+        Route::get('/umkm-binaan/{mitra}', [PumkUmkmBinaanController::class, 'show'])
+            ->whereNumber('mitra')
+            ->name('umkm-binaan.show');
         Route::get('/monitoring/rincian-data', PumkMonitoringDiagnosticsController::class)->name('monitoring.diagnostics');
         Route::get('/profil', [AdminProfileController::class, 'edit'])->name('profile');
         Route::put('/profil', [AdminProfileController::class, 'update'])->name('profile.update');

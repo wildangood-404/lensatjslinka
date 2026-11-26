@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PumkMonitoringPosition extends Model
 {
@@ -20,5 +21,15 @@ class PumkMonitoringPosition extends Model
             'saldo_bunga' => 'decimal:2',
             'classification_limited' => 'boolean',
         ];
+    }
+
+    public function report(): BelongsTo
+    {
+        return $this->belongsTo(PumkMonitoringReport::class, 'report_id');
+    }
+
+    public function pinjaman(): BelongsTo
+    {
+        return $this->belongsTo(PumkPinjaman::class, 'pinjaman_id');
     }
 }

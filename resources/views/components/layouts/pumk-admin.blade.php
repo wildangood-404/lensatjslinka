@@ -54,16 +54,16 @@
             </a>
 
             <div>
-                <button type="button" class="pumk-menu-button" data-pumk-menu aria-expanded="{{ request()->routeIs('pumk-admin.mitra.*') ? 'true' : 'false' }}">
+                <button type="button" class="pumk-menu-button" data-pumk-menu aria-expanded="{{ request()->routeIs('pumk-admin.umkm-binaan.*', 'pumk-admin.mitra.*') ? 'true' : 'false' }}">
                     <span>
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path d="M5 3.5h14v17H5zM8 7h8M8 11h8M8 15h5"/><path d="M16.5 14v4m-2-2h4"/></svg>
-                        <span class="pumk-nav-label">Kartu Piutang</span>
+                        <span class="pumk-nav-label">UMKM Binaan</span>
                     </span>
                     <svg class="pumk-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                 </button>
-                <div class="pumk-submenu" data-pumk-submenu @if(! request()->routeIs('pumk-admin.mitra.*')) hidden @endif>
-                    <a href="{{ route('pumk-admin.mitra.index') }}" class="{{ request()->routeIs('pumk-admin.mitra.index', 'pumk-admin.mitra.show', 'pumk-admin.mitra.edit') ? 'is-active' : '' }}">Daftar Mitra Binaan</a>
-                    <a href="{{ route('pumk-admin.mitra.create') }}" class="{{ request()->routeIs('pumk-admin.mitra.create') ? 'is-active' : '' }}">Tambah Mitra Binaan</a>
+                <div class="pumk-submenu" data-pumk-submenu @if(! request()->routeIs('pumk-admin.umkm-binaan.*', 'pumk-admin.mitra.*')) hidden @endif>
+                    <a href="{{ route('pumk-admin.umkm-binaan.report-outstanding') }}" class="{{ request()->routeIs('pumk-admin.umkm-binaan.report-outstanding') ? 'is-active' : '' }}">Report Outstanding</a>
+                    <a href="{{ route('pumk-admin.umkm-binaan.index') }}" class="{{ request()->routeIs('pumk-admin.umkm-binaan.index', 'pumk-admin.umkm-binaan.show', 'pumk-admin.mitra.index', 'pumk-admin.mitra.show', 'pumk-admin.mitra.edit') ? 'is-active' : '' }}">Daftar UMKM Binaan</a>
                 </div>
             </div>
 

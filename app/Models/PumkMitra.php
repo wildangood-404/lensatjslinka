@@ -21,6 +21,38 @@ class PumkMitra extends Model
         'provinsi',
         'alamat',
         'nama_pemilik',
+        'pasfoto',
+        'nik',
+        'jenis_kelamin',
+        'tempat_lahir',
+        'tanggal_lahir',
+        'email',
+        'alamat_ktp_provinsi',
+        'alamat_ktp_kabupaten_kota',
+        'alamat_ktp_kecamatan',
+        'alamat_ktp_desa',
+        'alamat_ktp_rt',
+        'alamat_ktp_rw',
+        'alamat_ktp_lengkap',
+        'alamat_ktp_share_lok',
+        'alamat_domisili_provinsi',
+        'alamat_domisili_kabupaten_kota',
+        'alamat_domisili_kecamatan',
+        'alamat_domisili_desa',
+        'alamat_domisili_rt',
+        'alamat_domisili_rw',
+        'alamat_domisili_lengkap',
+        'alamat_domisili_share_lok',
+        'alamat_domisili_sama_ktp',
+        'alamat_usaha_provinsi',
+        'alamat_usaha_kabupaten_kota',
+        'alamat_usaha_kecamatan',
+        'alamat_usaha_desa',
+        'alamat_usaha_rt',
+        'alamat_usaha_rw',
+        'alamat_usaha_lengkap',
+        'alamat_usaha_share_lok',
+        'alamat_usaha_sama_ktp',
         'no_ktp_encrypted',
         'no_telepon_encrypted',
         'no_rekening_encrypted',
@@ -33,8 +65,12 @@ class PumkMitra extends Model
     {
         return [
             'no_ktp_encrypted' => 'encrypted',
+            'nik' => 'encrypted',
             'no_telepon_encrypted' => 'encrypted',
             'no_rekening_encrypted' => 'encrypted',
+            'tanggal_lahir' => 'date',
+            'alamat_domisili_sama_ktp' => 'boolean',
+            'alamat_usaha_sama_ktp' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
@@ -88,5 +124,10 @@ class PumkMitra extends Model
     public function classificationHistory(): HasMany
     {
         return $this->hasMany(PumkClassificationHistory::class, 'mitra_id');
+    }
+
+    public function dokumenPendukung(): HasMany
+    {
+        return $this->hasMany(PumkMitraDokumen::class, 'mitra_id');
     }
 }

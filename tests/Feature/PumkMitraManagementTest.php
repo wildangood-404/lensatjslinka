@@ -95,7 +95,7 @@ class PumkMitraManagementTest extends TestCase
         ]);
 
         $mitra = PumkMitra::where('nama_mitra', 'Mitra Baru PUMK')->firstOrFail();
-        $response->assertRedirect(route('pumk-admin.mitra.show', $mitra));
+        $response->assertRedirect(route('pumk-admin.umkm-binaan.show', $mitra));
 
         $this->assertSame($admin->id, $mitra->created_by);
         $this->assertSame('1234567890123456', $mitra->no_ktp_encrypted);

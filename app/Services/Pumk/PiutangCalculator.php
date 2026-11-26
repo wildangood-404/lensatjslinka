@@ -142,6 +142,12 @@ class PiutangCalculator
             $menggunakanBaselineSumber = false;
         }
 
+        if ($schedule === null && ($baseline['manual_snapshot'] ?? false)) {
+            $kolektibilitas = $baseline['kolektibilitas'] ?? $pinjaman->kolektibilitas;
+            $bulanTunggakan = $baseline['bulan_tunggakan'] ?? $pinjaman->bulan_tunggakan;
+            $nilaiTunggakan = $baseline['nilai_tunggakan'] ?? $pinjaman->nilai_tunggakan;
+        }
+
         return [
             'total_pokok_masuk' => $pokokMasuk,
             'total_bunga_masuk' => $bungaMasuk,

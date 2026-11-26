@@ -1,4 +1,4 @@
-<x-layouts.pumk-admin title="Daftar Mitra Binaan">
+<x-layouts.pumk-admin title="Daftar UMKM Binaan">
     @include('pumk-admin.partials.module-styles')
 
     @php
@@ -14,26 +14,34 @@
     @endphp
 
     <style>
+        .pumk-filter.pumk-mitra-filter{display:block;margin-bottom:20px;padding:16px}
+        .pumk-mitra-filter .pumk-filter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+        .pumk-filter-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:16px}
+        .pumk-filter-actions .pumk-secondary-button{background:#e2e8f0;color:#334155}
+        .pumk-table-action.is-primary{border-color:#2653ff;background:#2653ff;color:#fff}
+        .pumk-table-action.is-primary:hover{border-color:#163ed8;background:#163ed8;color:#fff}
         .pumk-collectibility-footer td{border-top:2px solid #cbd5e1;overflow-wrap:anywhere}
         .pumk-collectibility-footer .summary-label,.pumk-collectibility-footer .summary-amount{font-weight:700}
         .pumk-collectibility-footer .summary-amount{text-align:right;white-space:nowrap}
         .pumk-collectibility-footer .summary-note{display:block;margin-top:4px;color:#475569;font-size:11px;font-weight:400;line-height:1.4}
+        @media(max-width:1023px){.pumk-mitra-filter .pumk-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:639px){.pumk-mitra-filter .pumk-filter-grid{grid-template-columns:1fr}}
     </style>
 
     <div class="pumk-page">
         <div class="pumk-page-header">
             <div>
-                <h1 class="pumk-page-title">Daftar Mitra Binaan</h1>
+                <h1 class="pumk-page-title">Daftar UMKM Binaan</h1>
                 <p class="pumk-page-subtitle">Cari dan pantau kartu piutang PUMK tanpa menampilkan data identitas sensitif.</p>
             </div>
             <div class="pumk-page-header-actions">
-                <a href="{{ route('pumk-admin.mitra.create') }}" class="pumk-primary-button">+ Tambah Mitra Binaan</a>
+                <a href="{{ route('pumk-admin.mitra.create') }}" class="pumk-primary-button">+ Tambah UMKM Binaan</a>
             </div>
         </div>
 
         <nav class="pumk-card" aria-label="Status Mitra" style="display:flex;gap:8px;margin:18px 0;padding:10px;flex-wrap:wrap">
             @foreach(['aktif' => 'Mitra Aktif', 'lunas' => 'Mitra Lunas / Arsip', 'semua' => 'Semua'] as $value => $label)
-                <a href="{{ route('pumk-admin.mitra.index', ['status' => $value]) }}"
+                <a href="{{ route('pumk-admin.umkm-binaan.index', ['status' => $value]) }}"
                    class="{{ $statusFilter === $value ? 'pumk-primary-button' : 'pumk-secondary-button' }}">{{ $label }}</a>
             @endforeach
         </nav>
@@ -42,36 +50,40 @@
             <div class="pumk-alert success" role="status">{{ session('success') }}</div>
         @endif
 
-        <form method="GET" action="{{ route('pumk-admin.mitra.index') }}" class="pumk-card pumk-filter">
+        <form method="GET" action="{{ route('pumk-admin.umkm-binaan.index') }}" class="pumk-card pumk-filter pumk-mitra-filter">
             <input type="hidden" name="status" value="{{ $statusFilter }}">
-            <div class="pumk-field">
-                <label for="q">Cari Nama Mitra</label>
-                <input id="q" name="q" class="pumk-input" value="{{ request('q') }}" maxlength="100" placeholder="Masukkan nama mitra">
+            <div class="pumk-filter-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="pumk-field">
+                    <label for="q">Cari Nama Mitra</label>
+                    <input id="q" name="q" class="pumk-input" value="{{ request('q') }}" maxlength="100" placeholder="Masukkan nama mitra">
+                </div>
+                <div class="pumk-field">
+                    <label for="wilayah">Wilayah</label>
+                    <input id="wilayah" name="wilayah" class="pumk-input" value="{{ request('wilayah') }}" maxlength="255" placeholder="Cari wilayah mitra">
+                </div>
+                <div class="pumk-field">
+                    <label for="sektor">Sektor Usaha</label>
+                    <select id="sektor" name="sektor" class="pumk-select">
+                        <option value="">Semua sektor</option>
+                        @foreach($sektorList as $sektor)
+                            <option value="{{ $sektor->id }}" @selected((string) request('sektor') === (string) $sektor->id)>{{ $sektor->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pumk-field">
+                    <label for="kolektibilitas">Kolektibilitas</label>
+                    <select id="kolektibilitas" name="kolektibilitas" class="pumk-select">
+                        <option value="">Semua status</option>
+                        @foreach($collectibilityOptions as $value => $label)
+                            <option value="{{ $value }}" @selected($selectedCollectibility === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
-            <div class="pumk-field">
-                <label for="wilayah">Kabupaten/Kota atau Provinsi</label>
-                <input id="wilayah" name="wilayah" class="pumk-input" value="{{ request('wilayah') }}" maxlength="255" placeholder="Cari lokasi mitra">
+            <div class="pumk-filter-actions mt-4 flex items-center justify-end gap-2">
+                <button type="submit" class="pumk-primary-button">Cari</button>
+                <a href="{{ route('pumk-admin.umkm-binaan.index', ['status' => $statusFilter]) }}" class="pumk-secondary-button">Reset</a>
             </div>
-            <div class="pumk-field">
-                <label for="sektor">Sektor Usaha</label>
-                <select id="sektor" name="sektor" class="pumk-select">
-                    <option value="">Semua sektor</option>
-                    @foreach($sektorList as $sektor)
-                        <option value="{{ $sektor->id }}" @selected((string) request('sektor') === (string) $sektor->id)>{{ $sektor->nama }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="pumk-field">
-                <label for="kolektibilitas">Kolektibilitas</label>
-                <select id="kolektibilitas" name="kolektibilitas" class="pumk-select">
-                    <option value="">Semua status</option>
-                    @foreach($collectibilityOptions as $value => $label)
-                        <option value="{{ $value }}" @selected($selectedCollectibility === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="pumk-primary-button" style="align-self:end">Cari</button>
-            <a href="{{ route('pumk-admin.mitra.index', ['status' => $statusFilter]) }}" class="pumk-secondary-button" style="align-self:end">Reset</a>
         </form>
 
         <section class="pumk-card">
@@ -108,7 +120,7 @@
                                 {{ $pinjaman && $pinjaman->rekap_balance !== null ? $formatSummaryRupiah((string) $pinjaman->rekap_balance) : '—' }}
                             </td>
                             <td class="actions">
-                                <a href="{{ route('pumk-admin.mitra.show', [$mitra, 'pinjaman' => $pinjaman?->id]) }}" class="pumk-table-action">Lihat Kartu</a>
+                                <a href="{{ route('pumk-admin.umkm-binaan.show', $mitra) }}" class="pumk-table-action is-primary">Profil</a>
                                 <a href="{{ route('pumk-admin.mitra.edit', [$mitra, 'pinjaman' => $pinjaman?->id]) }}" class="pumk-table-action">{{ $pinjaman?->status === 'aktif' ? 'Edit' : 'Edit Arsip' }}</a>
                             </td>
                         </tr>

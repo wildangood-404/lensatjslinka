@@ -44,7 +44,7 @@
         <div class="section-heading">
             <h2>Kolektibilitas Pinjaman</h2>
             <div class="section-actions">
-                <a href="{{ route('pumk-admin.mitra.index') }}" class="pumk-secondary-button">Lihat Daftar Mitra</a>
+                <a href="{{ route('pumk-admin.umkm-binaan.index') }}" class="pumk-secondary-button">Lihat Daftar Mitra</a>
                 <a href="{{ route('pumk-admin.mitra.create') }}" class="pumk-primary-button">Tambah Mitra Binaan</a>
             </div>
         </div>
