@@ -187,9 +187,6 @@
         .umkm-profile-empty strong{display:block;color:#334155;font-size:12px}
         .umkm-profile-empty p{margin:5px 0 0;font-size:11px}
         .umkm-profile-section-label{margin:20px 0 10px;color:#334155;font-size:12px;font-weight:700}
-        .umkm-monitoring-callout{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;border:1px solid #dbeafe;border-radius:12px;background:#f8fbff;padding:14px}
-        .umkm-monitoring-callout p{margin:0;color:#475569;font-size:11px;line-height:1.55}
-        .umkm-monitoring-callout a{display:inline-flex;min-height:36px;align-items:center;border-radius:8px;background:#2563eb;padding:0 12px;color:#fff;font-size:11px;font-weight:700;text-decoration:none}
         .umkm-profile-page .pumk-primary-button{white-space:nowrap}
         @media(max-width:900px){.umkm-finance-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
         @media(max-width:760px){.umkm-profile-page{padding:12px;border-radius:16px}.umkm-profile-hero,.umkm-profile-card{padding:18px}.umkm-hero-top{flex-direction:column}.umkm-profile-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.umkm-profile-tabs button{font-size:11px}.umkm-profile-tabs svg{width:15px;height:15px}}
@@ -486,6 +483,9 @@
                 <span class="umkm-profile-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 18.5V5.5m0 13h16M8 15v-4m4 4V7m4 8v-6"/></svg></span>
                 <div><h2>Riwayat Monitoring</h2><p>Catatan kunjungan, tindak lanjut, dan dokumentasi lapangan UMKM binaan.</p></div>
             </div>
+            @if(session('success'))
+                <div class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800" role="status">{{ session('success') }}</div>
+            @endif
             @if($monitoringHistory->isNotEmpty())
                 <details class="mb-5 rounded-xl border border-slate-200 bg-white p-4">
                     <summary class="cursor-pointer text-sm font-semibold text-slate-700">Lihat snapshot posisi pinjaman dari Upload Monitoring</summary>

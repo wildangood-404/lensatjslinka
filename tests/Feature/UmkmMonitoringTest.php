@@ -37,6 +37,7 @@ class UmkmMonitoringTest extends TestCase
         $this->actingAs($this->pumkAdmin(), 'pumk');
         $mitra = $this->mitra();
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p1sAAAAASUVORK5CYII=');
+        $pdf = "%PDF-1.4\n";
 
         $response = $this->post(route('pumk-admin.umkm-binaan.monitoring.store', $mitra), [
             'periode_tahun' => 2026,
@@ -47,6 +48,7 @@ class UmkmMonitoringTest extends TestCase
             'dokumentasi' => [
                 UploadedFile::fake()->createWithContent('lokasi-1.png', $png),
                 UploadedFile::fake()->createWithContent('lokasi-2.png', $png),
+                UploadedFile::fake()->createWithContent('laporan.pdf', $pdf),
             ],
         ]);
 
@@ -55,13 +57,17 @@ class UmkmMonitoringTest extends TestCase
             ->assertSessionHas('success', 'Update monitoring berhasil disimpan.');
         $this->assertSame(2026, $record->periode_tahun);
         $this->assertSame('Survei lokasi usaha', $record->jenis_kunjungan);
-        $this->assertCount(2, $record->dokumentasi);
+        $this->assertCount(3, $record->dokumentasi);
         Storage::disk('local')->assertExists($record->dokumentasi[0]['path']);
         Storage::disk('local')->assertExists($record->dokumentasi[1]['path']);
+        Storage::disk('local')->assertExists($record->dokumentasi[2]['path']);
 
         $this->get(route('pumk-admin.umkm-binaan.monitoring.document', [$mitra, $record, 0]))
             ->assertOk()
             ->assertHeader('Content-Type', 'image/png');
+        $this->get(route('pumk-admin.umkm-binaan.monitoring.document', [$mitra, $record, 2]))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
         $this->get(route('pumk-admin.umkm-binaan.show', ['mitra' => $mitra, 'tab' => 'monitoring']))
             ->assertOk()
             ->assertSee('Survei lokasi usaha')
@@ -80,6 +86,24 @@ class UmkmMonitoringTest extends TestCase
                 'jenis_kunjungan' => 'Kunjungan Rutin',
                 'tindak_lanjut' => 'Hubungi mitra kembali.',
                 'dokumentasi' => [UploadedFile::fake()->createWithContent('catatan.txt', 'bukan dokumentasi yang diizinkan')],
+            ])
+            ->assertSessionHasErrors('dokumentasi.0');
+
+        $this->assertDatabaseCount('umkm_monitorings', 0);
+    }
+
+    public function test_each_monitoring_file_is_limited_to_ten_megabytes(): void
+    {
+        $this->actingAs($this->pumkAdmin(), 'pumk');
+        $mitra = $this->mitra();
+        $oversizedPdf = "%PDF-1.4\n".str_repeat('0', 10 * 1024 * 1024);
+
+        $this->from(route('pumk-admin.umkm-binaan.show', ['mitra' => $mitra, 'tab' => 'monitoring']))
+            ->post(route('pumk-admin.umkm-binaan.monitoring.store', $mitra), [
+                'periode_tahun' => 2026,
+                'jenis_kunjungan' => 'Kunjungan Rutin',
+                'tindak_lanjut' => 'Hubungi mitra kembali.',
+                'dokumentasi' => [UploadedFile::fake()->createWithContent('terlalu-besar.pdf', $oversizedPdf)],
             ])
             ->assertSessionHasErrors('dokumentasi.0');
 
