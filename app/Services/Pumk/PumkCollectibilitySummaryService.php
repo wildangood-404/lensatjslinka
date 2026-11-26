@@ -8,7 +8,7 @@ use InvalidArgumentException;
 
 class PumkCollectibilitySummaryService
 {
-    private const CATEGORIES = ['lancar', 'kurang_lancar', 'diragukan', 'macet', 'belum_dinilai'];
+    private const CATEGORIES = ['lancar', 'kurang_lancar', 'diragukan', 'macet', 'bermasalah', 'belum_dinilai'];
 
     public function __construct(private readonly PiutangCalculator $calculator) {}
 
@@ -90,13 +90,13 @@ class PumkCollectibilitySummaryService
      * @param  array<string,mixed>  $filters
      * @return list<int>
      */
-    public function matchingLoanIds(array $filters, string $category): array
+    public function matchingLoanIds(array $filters, string $category, string $mitraCategory = 'reguler'): array
     {
         if (! in_array($category, self::CATEGORIES, true)) {
             throw new InvalidArgumentException('Kategori kolektibilitas tidak dikenal.');
         }
         $ids = [];
-        $this->recapScope($this->ownerScope($filters))
+        $this->recapScope($this->ownerScope($filters, $mitraCategory))
             ->with(['saldoAwal', 'angsuran'])
             ->chunkById(200, function ($loans) use ($category, &$ids): void {
                 foreach ($loans as $loan) {
@@ -116,7 +116,7 @@ class PumkCollectibilitySummaryService
      * @param  array<string, mixed>  $filters
      * @return array{ids:list<int>,summary:array{nominal:array<string,string>,subtotal:string,unknown_balances:int,cache_differences:int,status_flag_mismatches:int}}
      */
-    public function matchingLoanIdsWithSummary(array $filters, string $category): array
+    public function matchingLoanIdsWithSummary(array $filters, string $category, string $mitraCategory = 'reguler'): array
     {
         if (! in_array($category, self::CATEGORIES, true)) {
             throw new InvalidArgumentException('Kategori kolektibilitas tidak dikenal.');
@@ -126,7 +126,7 @@ class PumkCollectibilitySummaryService
         $amounts = array_fill_keys(self::CATEGORIES, '0.00');
         $unknownBalances = 0;
         $cacheDifferences = 0;
-        $this->recapScope($this->ownerScope($filters))
+        $this->recapScope($this->ownerScope($filters, $mitraCategory))
             ->with(['saldoAwal', 'angsuran'])
             ->chunkById(200, function ($loans) use ($category, &$ids, &$amounts, &$unknownBalances, &$cacheDifferences): void {
                 foreach ($loans as $loan) {
@@ -161,9 +161,10 @@ class PumkCollectibilitySummaryService
     }
 
     /** @param array<string, mixed> $filters */
-    private function ownerScope(array $filters): Builder
+    private function ownerScope(array $filters, string $mitraCategory = 'reguler'): Builder
     {
-        return PumkPinjaman::query()->whereHas('mitra', function (Builder $query) use ($filters): void {
+        return PumkPinjaman::query()->whereHas('mitra', function (Builder $query) use ($filters, $mitraCategory): void {
+            $query->where('kategori_binaan', $mitraCategory);
             if (filled($filters['q'] ?? null)) {
                 $query->where('nama_mitra', 'like', '%'.trim((string) $filters['q']).'%');
             }
@@ -218,6 +219,7 @@ class PumkCollectibilitySummaryService
             'kl', 'kurang_lancar' => 'kurang_lancar',
             'd', 'diragukan' => 'diragukan',
             'm', 'macet' => 'macet',
+            'bermasalah' => 'bermasalah',
             default => 'belum_dinilai',
         };
     }

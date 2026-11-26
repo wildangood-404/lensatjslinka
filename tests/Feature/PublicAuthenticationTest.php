@@ -13,7 +13,11 @@ class PublicAuthenticationTest extends TestCase
 
     public function test_public_pages_redirect_guests_to_the_public_login(): void
     {
-        $this->get('/')->assertRedirect(route('login'));
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Portal Informasi TJSL &amp; PUMK', false)
+            ->assertSee('Masuk / Login')
+            ->assertSee('id="home-showcase"', false);
         $this->get('/teras-tjsl')->assertRedirect(route('login'));
         $this->get('/profil')->assertRedirect(route('login'));
 
@@ -41,7 +45,7 @@ class PublicAuthenticationTest extends TestCase
         ])->assertRedirect(route('admin.home'));
         $this->assertAuthenticatedAs($admin, 'web');
         $this->assertAuthenticatedAs($admin, 'admin');
-        $this->get(route('home'))
+        $this->get(route('monitoring.tjsl'))
             ->assertOk()
             ->assertSeeInOrder([
                 'id="monitoring-desktop-menu"',
@@ -50,6 +54,26 @@ class PublicAuthenticationTest extends TestCase
             ], false)
             ->assertDontSee('videos/waterfall-bg.mp4');
         $this->get(route('admin.home'))->assertOk();
+        $this->get(route('home'))->assertOk()->assertSee('id="home-showcase"', false);
+    }
+
+    public function test_user_role_login_opens_the_unified_home_page(): void
+    {
+        $user = User::factory()->create([
+            'username' => 'portal-user',
+            'password' => Hash::make('Password123'),
+            'role' => 'user',
+            'is_active' => true,
+            'must_change_password' => false,
+        ]);
+
+        $this->post(route('login.store'), [
+            'username' => 'portal-user',
+            'password' => 'Password123',
+        ])->assertRedirect(route('home'));
+
+        $this->assertAuthenticatedAs($user, 'web');
+        $this->get(route('home'))->assertOk()->assertSee('id="home-showcase"', false);
     }
 
     public function test_public_profile_renders_and_updates_the_shared_account(): void

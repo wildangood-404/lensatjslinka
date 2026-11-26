@@ -105,7 +105,7 @@
             </div>
             @endif
             @unless(auth()->user()->must_change_password)
-            <a href="{{ route('home') }}" class="monitoring-nav-link {{ $isSuperPanel ? 'super-menu-link' : 'flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-gray-100' }}" aria-label="Monitoring"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 5h16v14H4zM7 15l3-3 2 2 4-5 2 2"/></svg><span class="nav-label">Monitoring</span></a>
+            <a href="{{ route('monitoring.tjsl') }}" class="monitoring-nav-link {{ $isSuperPanel ? 'super-menu-link' : 'flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-gray-100' }}" aria-label="Monitoring"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 5h16v14H4zM7 15l3-3 2 2 4-5 2 2"/></svg><span class="nav-label">Monitoring</span></a>
             @endunless
             @unless($isSuperPanel)
             <a href="{{ route('admin.news.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-gray-100 {{ request()->routeIs('admin.news.*') ? 'is-active' : '' }}"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v14H4zM7 9h10M7 12h10M7 15h6"/></svg><span class="nav-label">Berita TJSL INKA</span></a>

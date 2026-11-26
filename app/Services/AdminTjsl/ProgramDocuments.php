@@ -132,7 +132,9 @@ final class ProgramDocuments
     public function destroyDocument(Request $request, ProgramDocument $document): RedirectResponse
     {
         $this->workflow->own($request, $document->program);
-        abort_unless($document->program->canBeEdited(), 403);
+        $canEditSurveyDocuments = in_array($document->program->status, ['proposal_approve', 'perbaikan'], true)
+            && $document->kategori_tahap === 'survei';
+        abort_unless($document->program->canBeEdited() || $canEditSurveyDocuments, 403);
 
         Storage::disk('local')->delete($document->file_path);
         $document->delete();

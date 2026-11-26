@@ -10,10 +10,10 @@
                                 @if($document)
                                     <small class="receivable-note">{{ $document->nama_file_asli }}</small>
                                     <div class="contract-document-actions">
-                                        <a class="small-action" target="_blank" rel="noopener" href="{{ route('pumk-admin.mitra.dokumen.view', [$mitra, $pinjaman, $document]) }}">Lihat</a>
-                                        <a class="small-action" href="{{ route('pumk-admin.mitra.dokumen.download', [$mitra, $pinjaman, $document]) }}">Unduh</a>
+                                        <a class="small-action" target="_blank" rel="noopener" href="{{ route($mitraRoutePrefix.'.dokumen.view', [$mitra, $pinjaman, $document]) }}">Lihat</a>
+                                        <a class="small-action" href="{{ route($mitraRoutePrefix.'.dokumen.download', [$mitra, $pinjaman, $document]) }}">Unduh</a>
                                         @if($loanIsActive)
-                                            <form method="POST" action="{{ route('pumk-admin.mitra.dokumen.destroy', [$mitra, $pinjaman, $document]) }}" onsubmit="return confirm('Hapus dokumen kontrak ini?')">
+                                            <form method="POST" action="{{ route($mitraRoutePrefix.'.dokumen.destroy', [$mitra, $pinjaman, $document]) }}" onsubmit="return confirm('Hapus dokumen kontrak ini?')">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="small-action danger">Hapus</button>
                                             </form>

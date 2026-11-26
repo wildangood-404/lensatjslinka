@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             BidangPrioritasSeeder::class,
             TpbDashboardSeeder::class,
             UserSeeder::class,
+            NewsDummySeeder::class,
             PumkAdminSeeder::class,
             PumkReferenceSeeder::class,
             TerasTjslSeeder::class,

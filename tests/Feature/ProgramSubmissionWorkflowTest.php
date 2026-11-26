@@ -143,17 +143,23 @@ class ProgramSubmissionWorkflowTest extends TestCase
                 'nomor_rekening' => '123456789',
                 'nama_bank' => 'Bank Inka',
                 'jalur_pengadaan_barang' => 'proses_pengadaan',
-                'sub_jalur_pengadaan' => 'logistik',
+                'sub_jalur_pengadaan' => 'non_logistik',
                 'vendors' => [
                     ['nama_vendor' => 'PT Vendor Uji', 'rincian_barang' => 'Peralatan kelas', 'harga' => '3.500.000'],
                 ],
-                'kategori_jasa' => 'lainnya',
+                'kategori_jasa' => 'non_logistik',
                 'keterangan_jasa_verifikasi' => 'Pelatihan pengelolaan alat',
+                'service_vendors' => [
+                    ['nama_vendor' => 'CV Jasa Uji', 'rincian_jasa' => 'Pelatihan pengelolaan alat', 'harga' => '1.500.000'],
+                ],
                 'survey_documents' => [
                     'kelengkapan_survei' => [
                         'nama' => 'Kelengkapan Survei',
                         'file' => UploadedFile::fake()->createWithContent('survei.txt', 'survey'),
                     ],
+                ],
+                'phase2_documentation' => [
+                    UploadedFile::fake()->createWithContent('foto-survei.txt', 'dokumentasi survei'),
                 ],
             ])->assertSessionHasNoErrors()->assertRedirect();
         $this->assertSame('menunggu_review_survei', $program->fresh()->status);
@@ -162,15 +168,33 @@ class ProgramSubmissionWorkflowTest extends TestCase
         $this->assertSame('8000000.00', $program->fresh()->sisa_anggaran);
         $this->assertDatabaseHas('program_verification_vendors', [
             'program_id' => $program->id,
+            'tipe' => 'barang',
             'nama_vendor' => 'PT Vendor Uji',
             'harga' => '3500000.00',
         ]);
+        $this->assertDatabaseHas('program_verification_vendors', [
+            'program_id' => $program->id,
+            'tipe' => 'jasa',
+            'nama_vendor' => 'CV Jasa Uji',
+            'rincian_jasa' => 'Pelatihan pengelolaan alat',
+            'harga' => '1500000.00',
+        ]);
+        $phaseTwoDocumentation = $program->documents()->where('document_type', 'dokumentasi_verifikasi')->firstOrFail();
+        Storage::disk('local')->assertExists($phaseTwoDocumentation->file_path);
+        $this->actingAs($this->admin, 'admin')
+            ->get(route('admin.programs.show', $program))
+            ->assertOk()
+            ->assertSee('foto-survei.txt')
+            ->assertSee(route('admin.program-documents.view', $phaseTwoDocumentation), false);
         $this->actingAs($this->superAdmin, 'superadmin')
             ->get(route('superadmin.programs.show', $program))
             ->assertOk()
             ->assertSee('Hasil Verifikasi Program')
             ->assertSee('Pendidikan vokasi')
             ->assertSee('PT Vendor Uji')
+            ->assertSee('CV Jasa Uji')
+            ->assertSee('foto-survei.txt')
+            ->assertSee(route('superadmin.program-documents.view', $phaseTwoDocumentation), false)
             ->assertSee('Pelatihan pengelolaan alat');
 
         $this->actingAs($this->superAdmin, 'superadmin')
@@ -179,6 +203,14 @@ class ProgramSubmissionWorkflowTest extends TestCase
                 'catatan' => 'Tambahkan informasi lokasi survei.',
             ])->assertRedirect();
         $this->assertSame('perbaikan', $program->fresh()->status);
+        $this->actingAs($this->admin, 'admin')
+            ->get(route('admin.programs.show', $program))
+            ->assertOk()
+            ->assertSee('foto-survei.txt')
+            ->assertSee('form="delete-document-'.$phaseTwoDocumentation->id.'"', false);
+        $this->delete(route('admin.program-documents.destroy', $phaseTwoDocumentation))
+            ->assertRedirect();
+        Storage::disk('local')->assertMissing($phaseTwoDocumentation->file_path);
 
         $this->actingAs($this->admin, 'admin')
             ->post(route('admin.programs.tahap2.store', $program), [
@@ -197,17 +229,23 @@ class ProgramSubmissionWorkflowTest extends TestCase
                 'nomor_rekening' => '123456789',
                 'nama_bank' => 'Bank Inka',
                 'jalur_pengadaan_barang' => 'proses_pengadaan',
-                'sub_jalur_pengadaan' => 'logistik',
+                'sub_jalur_pengadaan' => 'non_logistik',
                 'vendors' => [
                     ['nama_vendor' => 'PT Vendor Uji', 'rincian_barang' => 'Peralatan kelas', 'harga' => '3.500.000'],
                 ],
-                'kategori_jasa' => 'lainnya',
+                'kategori_jasa' => 'non_logistik',
                 'keterangan_jasa_verifikasi' => 'Pelatihan pengelolaan alat',
+                'service_vendors' => [
+                    ['nama_vendor' => 'CV Jasa Uji', 'rincian_jasa' => 'Pelatihan pengelolaan alat', 'harga' => '1.500.000'],
+                ],
                 'survey_documents' => [
                     'kelengkapan_survei' => [
                         'nama' => 'Survei Revisi',
                         'file' => UploadedFile::fake()->createWithContent('survei-revisi.txt', 'survey revisi'),
                     ],
+                ],
+                'phase2_documentation' => [
+                    UploadedFile::fake()->createWithContent('foto-survei-revisi.txt', 'dokumentasi survei revisi'),
                 ],
             ])->assertRedirect();
         $this->actingAs($this->superAdmin, 'superadmin')
@@ -424,28 +462,43 @@ class ProgramSubmissionWorkflowTest extends TestCase
         $program->update(['status' => 'survei_disetujui']);
 
         $this->actingAs($this->admin, 'admin')
-            ->post(route('admin.programs.pengajuan.update', $program), [
-                'status_operasional' => 'tertunda',
-                'jalur_pengajuan' => ['uang_tunai_kas_bon', 'barang_bekas_jasa'],
-                'catatan_operasional' => 'Menunggu jadwal mitra.',
-            ])
-            ->assertSessionHasNoErrors();
+            ->get(route('admin.programs.show', $program))
+            ->assertOk()
+            ->assertSee('Tahap 3 — Tahap Pengajuan')
+            ->assertDontSee('Tahap 4 — Pelaksanaan Program');
+        $this->post(route('admin.programs.pelaksanaan.update', $program), [
+            'status_operasional' => 'pelaksanaan',
+        ])->assertForbidden();
 
-        $this->assertSame('tertunda', $program->fresh()->status);
-        $this->assertSame('tertunda', $program->fresh()->status_operasional);
+        $this->actingAs($this->admin, 'admin')
+            ->post(route('admin.programs.pengajuan.update', $program), [
+                'jalur_pengajuan' => ['uang_tunai_kas_bon', 'barang_bekas_jasa'],
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('admin.programs.show', $program).'#stage-4');
+
+        $this->assertSame('survei_disetujui', $program->fresh()->status);
+        $this->assertNull($program->fresh()->status_operasional);
         $this->assertSame(['uang_tunai_kas_bon', 'barang_bekas_jasa'], $program->fresh()->jalur_pengajuan);
+
+        $this->post(route('admin.programs.pelaksanaan.update', $program), [
+            'status_operasional' => 'tertunda',
+            'catatan_operasional' => 'Menunggu jadwal mitra.',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('tertunda', $program->fresh()->status);
         $this->assertSame('Menunggu jadwal mitra.', $program->fresh()->catatan_operasional);
 
-        $this->post(route('admin.programs.pengajuan.update', $program), [
+        $this->post(route('admin.programs.pelaksanaan.update', $program), [
             'status_operasional' => 'pelaksanaan',
-            'jalur_pengajuan' => ['uang_tunai_kas_bon'],
-        ])->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors()->assertRedirect(route('admin.programs.show', $program).'#stage-5');
         $this->assertSame('pelaksanaan', $program->fresh()->status);
         $this->assertSame('pelaksanaan', $program->fresh()->status_operasional);
         $this->assertNull($program->fresh()->catatan_operasional);
 
         $this->get(route('admin.programs.show', $program))
             ->assertOk()
+            ->assertSee('Tahap 4 — Pelaksanaan Program')
+            ->assertSee('Tahap 5 — Pelaporan Akhir')
             ->assertSee('Pelaporan Akhir')
             ->assertSee('Pelaksanaan')
             ->assertSee('name="activity_photos[]" accept="image/*" multiple', false)
@@ -497,6 +550,81 @@ class ProgramSubmissionWorkflowTest extends TestCase
             ->assertRedirect();
         Storage::disk('local')->assertMissing($photo->file_path);
         $this->assertDatabaseMissing('program_documents', ['id' => $photo->id]);
+    }
+
+    public function test_admin_status_program_has_status_specific_quick_actions(): void
+    {
+        $this->actingAs($this->admin, 'admin')
+            ->post(route('admin.programs.store'), $this->programPayload([
+                'documents' => [
+                    'proposal_pengajuan_program' => [
+                        'nama' => 'Proposal',
+                        'file' => UploadedFile::fake()->createWithContent('proposal.txt', 'proposal'),
+                    ],
+                ],
+            ]))->assertSessionHasNoErrors();
+
+        $program = Program::where('nama_program', 'Program Tiga Tahap')->firstOrFail();
+        $program->update(['status' => 'proposal_approve']);
+
+        $this->get(route('admin.programs.index'))
+            ->assertOk()
+            ->assertSee('Lanjutkan Pengisian')
+            ->assertSee(route('admin.programs.show', $program).'#stage-2-edit', false);
+
+        $program->update(['status' => 'perbaikan']);
+        $this->get(route('admin.programs.index'))
+            ->assertOk()
+            ->assertSee('Perbaiki Berkas')
+            ->assertSee(route('admin.programs.show', $program).'#stage-2-edit', false);
+
+        $program->update(['status' => 'menunggu_review_survei']);
+        $this->get(route('admin.programs.index'))
+            ->assertOk()
+            ->assertSee('Lihat Detail')
+            ->assertSee(route('admin.programs.show', $program), false);
+    }
+
+    public function test_logistics_assistance_does_not_require_or_store_vendor_rows(): void
+    {
+        $this->actingAs($this->admin, 'admin')
+            ->post(route('admin.programs.store'), $this->programPayload([
+                'documents' => [
+                    'proposal_pengajuan_program' => [
+                        'nama' => 'Proposal Logistik',
+                        'file' => UploadedFile::fake()->createWithContent('proposal-logistik.txt', 'proposal'),
+                    ],
+                ],
+            ]))->assertSessionHasNoErrors();
+
+        $program = Program::where('nama_program', 'Program Tiga Tahap')->firstOrFail();
+        $program->update(['status' => 'proposal_approve']);
+
+        $this->actingAs($this->admin, 'admin')
+            ->post(route('admin.programs.tahap2.store', $program), [
+                'kesesuaian_rka' => 'CID',
+                'pilar_verifikasi' => 'Sosial',
+                'kebutuhan_program' => 'Kebutuhan program logistik.',
+                'lokasi_program' => 'Madiun',
+                'sasaran_program' => 'Masyarakat',
+                'tanggal_pelaksanaan' => '2026-05-01',
+                'jenis_bantuan_verifikasi' => ['barang', 'jasa'],
+                'jalur_pengadaan_barang' => 'proses_pengadaan',
+                'sub_jalur_pengadaan' => 'logistik',
+                'vendors' => [
+                    ['nama_vendor' => 'Vendor Tidak Digunakan', 'rincian_barang' => 'Barang', 'harga' => '1000'],
+                ],
+                'kategori_jasa' => 'logistik',
+                'keterangan_jasa_verifikasi' => 'Pengiriman perlengkapan.',
+                'survey_documents' => [
+                    'kelengkapan_survei' => [
+                        'nama' => 'Kelengkapan Survei',
+                        'file' => UploadedFile::fake()->createWithContent('survei.txt', 'survey'),
+                    ],
+                ],
+            ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('program_verification_vendors', 0);
     }
 
     public function test_external_proposal_stores_and_displays_all_requested_assistance_details(): void

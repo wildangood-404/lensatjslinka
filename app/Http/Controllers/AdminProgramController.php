@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Pillar;
 use App\Models\Program;
 use App\Models\ProgramDocument;
-use App\Models\Pillar;
 use App\Services\AdminTjsl\ProgramChanges;
 use App\Services\AdminTjsl\ProgramDocuments;
 use App\Services\AdminTjsl\ProgramPages;
@@ -78,13 +78,18 @@ class AdminProgramController extends Controller
             $request->merge(['sisa_anggaran' => preg_replace('/\D/', '', $request->input('sisa_anggaran'))]);
         }
         $vendorsInput = $request->input('vendors');
-        if (is_array($vendorsInput)) {
-            foreach ($vendorsInput as $index => $vendor) {
+        $serviceVendorsInput = $request->input('service_vendors');
+        foreach (['vendors' => $vendorsInput, 'service_vendors' => $serviceVendorsInput] as $field => $rows) {
+            if (! is_array($rows)) {
+                continue;
+            }
+
+            foreach ($rows as $index => $vendor) {
                 if (isset($vendor['harga']) && is_string($vendor['harga'])) {
-                    $vendorsInput[$index]['harga'] = preg_replace('/\D/', '', $vendor['harga']);
+                    $rows[$index]['harga'] = preg_replace('/\D/', '', $vendor['harga']);
                 }
             }
-            $request->merge(['vendors' => $vendorsInput]);
+            $request->merge([$field => $rows]);
         }
 
         $assistanceTypes = $request->input('jenis_bantuan_verifikasi', []);
@@ -92,7 +97,9 @@ class AdminProgramController extends Controller
         $hasGoods = is_array($assistanceTypes) && in_array('barang', $assistanceTypes, true);
         $hasService = is_array($assistanceTypes) && in_array('jasa', $assistanceTypes, true);
         $isProcurement = $hasGoods && $request->input('jalur_pengadaan_barang') === 'proses_pengadaan';
+        $requiresGoodsVendors = $isProcurement && $request->input('sub_jalur_pengadaan') === 'non_logistik';
         $isUsedGoods = $hasGoods && $request->input('jalur_pengadaan_barang') === 'barang_bekas';
+        $requiresServiceVendors = $hasService && $request->input('kategori_jasa') === 'non_logistik';
         $data = $request->validate([
             'kesesuaian_rka' => ['required', Rule::in(['CID', 'NON CID'])],
             'pilar_verifikasi' => ['required', 'string', 'exists:pillars,name'],
@@ -113,16 +120,22 @@ class AdminProgramController extends Controller
             'nama_bank' => [Rule::requiredIf($hasMoney), 'nullable', 'string', 'max:255'],
             'jalur_pengadaan_barang' => [Rule::requiredIf($hasGoods), 'nullable', Rule::in(['proses_pengadaan', 'barang_bekas'])],
             'sub_jalur_pengadaan' => [Rule::requiredIf($isProcurement), 'nullable', Rule::in(['logistik', 'non_logistik'])],
-            'vendors' => [Rule::requiredIf($isProcurement), 'nullable', 'array', 'min:1'],
-            'vendors.*.nama_vendor' => [Rule::requiredIf($isProcurement), 'nullable', 'string', 'max:255'],
-            'vendors.*.rincian_barang' => [Rule::requiredIf($isProcurement), 'nullable', 'string', 'max:255'],
-            'vendors.*.harga' => [Rule::requiredIf($isProcurement), 'nullable', 'numeric', 'min:0'],
+            'vendors' => [Rule::requiredIf($requiresGoodsVendors), 'nullable', 'array', 'min:1'],
+            'vendors.*.nama_vendor' => [Rule::requiredIf($requiresGoodsVendors), 'nullable', 'string', 'max:255'],
+            'vendors.*.rincian_barang' => [Rule::requiredIf($requiresGoodsVendors), 'nullable', 'string', 'max:255'],
+            'vendors.*.harga' => [Rule::requiredIf($requiresGoodsVendors), 'nullable', 'numeric', 'min:0'],
             'sumber_barang' => [Rule::requiredIf($isUsedGoods), 'nullable', 'string', 'max:255'],
             'deskripsi_barang' => [Rule::requiredIf($isUsedGoods), 'nullable', 'string'],
             'kategori_jasa' => [Rule::requiredIf($hasService), 'nullable', Rule::in(['logistik', 'non_logistik', 'lainnya'])],
-            'keterangan_jasa_verifikasi' => [Rule::requiredIf($hasService && $request->input('kategori_jasa') === 'lainnya'), 'nullable', 'string', 'max:255'],
+            'keterangan_jasa_verifikasi' => [Rule::requiredIf($hasService), 'nullable', 'string', 'max:255'],
+            'service_vendors' => [Rule::requiredIf($requiresServiceVendors), 'nullable', 'array', 'min:1'],
+            'service_vendors.*.nama_vendor' => [Rule::requiredIf($requiresServiceVendors), 'nullable', 'string', 'max:255'],
+            'service_vendors.*.rincian_jasa' => [Rule::requiredIf($requiresServiceVendors), 'nullable', 'string', 'max:255'],
+            'service_vendors.*.harga' => [Rule::requiredIf($requiresServiceVendors), 'nullable', 'numeric', 'min:0'],
             'survey_documents.*.nama' => ['nullable', 'string', 'max:255'],
             'survey_documents.*.file' => ['nullable', 'file', 'max:10240'],
+            'phase2_documentation' => ['nullable', 'array', 'max:30'],
+            'phase2_documentation.*' => ['file', 'max:10240'],
         ]);
         $hasSurvey = $program->documents()->where('kategori_tahap', 'survei')
             ->where('document_type', 'kelengkapan_survei')->exists();
@@ -133,8 +146,23 @@ class AdminProgramController extends Controller
         }
 
         $from = $program->status;
-        $vendors = $isProcurement ? ($data['vendors'] ?? []) : [];
-        unset($data['vendors'], $data['survey_documents']);
+        $vendors = $requiresGoodsVendors
+            ? collect($data['vendors'] ?? [])->map(fn (array $vendor) => [
+                ...$vendor,
+                'tipe' => 'barang',
+                'rincian_jasa' => null,
+            ])->all()
+            : [];
+        $serviceVendors = $requiresServiceVendors
+            ? collect($data['service_vendors'] ?? [])->map(fn (array $vendor) => [
+                'tipe' => 'jasa',
+                'nama_vendor' => $vendor['nama_vendor'],
+                'rincian_barang' => '',
+                'rincian_jasa' => $vendor['rincian_jasa'],
+                'harga' => $vendor['harga'],
+            ])->all()
+            : [];
+        unset($data['vendors'], $data['service_vendors'], $data['survey_documents'], $data['phase2_documentation']);
         $selectedPillar = Pillar::where('name', $data['pilar_verifikasi'])->firstOrFail();
         $data['pillar_id'] = $selectedPillar->id;
         if (! $hasMoney) {
@@ -163,22 +191,30 @@ class AdminProgramController extends Controller
         if (! $hasService) {
             $data['kategori_jasa'] = null;
             $data['keterangan_jasa_verifikasi'] = null;
-        } elseif (($data['kategori_jasa'] ?? null) !== 'lainnya') {
-            $data['keterangan_jasa_verifikasi'] = null;
         }
         if ($hasMoney && $data['sumber_pencairan'] !== 'lainnya') {
             $data['sumber_pencairan_lainnya'] = null;
         }
 
-        DB::transaction(function () use ($request, $program, $from, $data, $vendors): void {
+        DB::transaction(function () use ($request, $program, $from, $data, $vendors, $serviceVendors): void {
             $this->changes->storeStageDocuments($request, $program, 'survei', 'survey_documents');
+            foreach ($request->file('phase2_documentation', []) as $file) {
+                $program->documents()->create([
+                    'document_type' => 'dokumentasi_verifikasi',
+                    'kategori_tahap' => 'survei',
+                    'nama_dokumen' => $file->getClientOriginalName(),
+                    'nama_file_asli' => $file->getClientOriginalName(),
+                    'file_path' => $file->store("programs/{$program->id}/documents", 'local'),
+                    'uploaded_at' => now(),
+                ]);
+            }
             $program->update([
                 ...$data,
                 'status' => 'menunggu_review_survei',
                 'catatan_terakhir' => null,
             ]);
             $program->verificationVendors()->delete();
-            foreach ($vendors as $vendor) {
+            foreach ([...$vendors, ...$serviceVendors] as $vendor) {
                 $program->verificationVendors()->create($vendor);
             }
             app(ProgramWorkflow::class)->log(
@@ -201,39 +237,63 @@ class AdminProgramController extends Controller
             && in_array($program->status, ['survei_disetujui', 'tertunda', 'pelaksanaan'], true),
             403,
         );
-
         $data = $request->validate([
-            'status_operasional' => ['required', Rule::in(['tertunda', 'pelaksanaan'])],
             'jalur_pengajuan' => ['required', 'array', 'min:1'],
             'jalur_pengajuan.*' => [
                 'required',
                 Rule::in(['uang_tunai_kas_bon', 'barang_pengadaan_logistik', 'barang_bekas_jasa']),
             ],
+        ]);
+
+        $program->update(['jalur_pengajuan' => array_values(array_unique($data['jalur_pengajuan']))]);
+
+        return redirect()
+            ->route('admin.programs.show', $program)
+            ->withFragment('stage-4')
+            ->with('success', 'Tahap Pengajuan tersimpan. Tahap Pelaksanaan Program kini dapat diisi.');
+    }
+
+    public function updatePelaksanaan(Request $request, Program $program): RedirectResponse
+    {
+        $this->pages->authorizeOwner($request, $program);
+        abort_unless(
+            ! $program->is_archived
+            && in_array($program->status, ['survei_disetujui', 'tertunda', 'pelaksanaan'], true),
+            403,
+        );
+        abort_unless(is_array($program->jalur_pengajuan) && $program->jalur_pengajuan !== [], 403);
+
+        $data = $request->validate([
+            'status_operasional' => ['required', Rule::in(['tertunda', 'pelaksanaan'])],
             'catatan_operasional' => ['nullable', 'string', 'max:5000'],
         ]);
         $from = $program->status;
         $to = $data['status_operasional'];
         $note = $to === 'tertunda' ? ($data['catatan_operasional'] ?? null) : null;
 
-        DB::transaction(function () use ($request, $program, $from, $to, $data, $note): void {
+        DB::transaction(function () use ($request, $program, $from, $to, $note): void {
             $program->update([
                 'status' => $to,
                 'status_operasional' => $to,
-                'jalur_pengajuan' => array_values(array_unique($data['jalur_pengajuan'])),
                 'catatan_operasional' => $note,
             ]);
-            app(ProgramWorkflow::class)->log(
-                $program,
-                $from,
-                $to,
-                $request->user()->id,
-                $note,
-            );
+            if ($from !== $to) {
+                app(ProgramWorkflow::class)->log(
+                    $program,
+                    $from,
+                    $to,
+                    $request->user()->id,
+                    $note,
+                );
+            }
         });
 
-        return back()->with('success', $to === 'pelaksanaan'
-            ? 'Status pengajuan diperbarui. Program kini dapat dilaporkan pada menu Pelaporan Akhir.'
-            : 'Status pengajuan diperbarui menjadi Tertunda.');
+        return redirect()
+            ->route('admin.programs.show', $program)
+            ->withFragment($to === 'pelaksanaan' ? 'stage-5' : 'stage-4')
+            ->with('success', $to === 'pelaksanaan'
+                ? 'Status pelaksanaan diperbarui. Tahap Pelaporan Akhir kini dapat diisi.'
+                : 'Status pelaksanaan diperbarui menjadi Tertunda.');
     }
 
     public function updateKasbon(Request $request, Program $program): RedirectResponse

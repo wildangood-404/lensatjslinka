@@ -60,20 +60,20 @@
                                         @endif
                                         @if($row['bukti_pembayaran'])
                                             <div class="payment-proof-links">
-                                                <a class="small-action" target="_blank" rel="noopener" href="{{ route('pumk-admin.mitra.angsuran.bukti.view', [$mitra, $pinjaman, $row['bukti_pembayaran']['angsuran_id']]) }}">Lihat Bukti</a>
-                                                <a class="small-action" href="{{ route('pumk-admin.mitra.angsuran.bukti.download', [$mitra, $pinjaman, $row['bukti_pembayaran']['angsuran_id']]) }}">Unduh</a>
+                                                <a class="small-action" target="_blank" rel="noopener" href="{{ route($mitraRoutePrefix.'.angsuran.bukti.view', [$mitra, $pinjaman, $row['bukti_pembayaran']['angsuran_id']]) }}">Lihat Bukti</a>
+                                                <a class="small-action" href="{{ route($mitraRoutePrefix.'.angsuran.bukti.download', [$mitra, $pinjaman, $row['bukti_pembayaran']['angsuran_id']]) }}">Unduh</a>
                                             </div>
                                         @endif
                                         @if($loanIsActive && $row['editable_angsuran'])
                                             <button type="button" class="receivable-edit-button"
                                                 data-edit-installment
-                                                data-update-url="{{ route('pumk-admin.mitra.angsuran.update', [$mitra, $pinjaman, $row['editable_angsuran']['id']]) }}"
+                                                data-update-url="{{ route($installmentUpdateRouteName, [$mitra, $pinjaman, $row['editable_angsuran']['id']]) }}"
                                                 data-periode="{{ $row['editable_angsuran']['periode'] }}"
                                                 data-nomor-bukti="{{ $row['editable_angsuran']['nomor_bukti'] }}"
                                                 data-has-bukti="{{ $row['editable_angsuran']['has_bukti'] ? '1' : '0' }}"
                                                 data-bukti-nama="{{ $row['editable_angsuran']['bukti_nama_asli'] }}"
-                                                data-bukti-view-url="{{ $row['editable_angsuran']['has_bukti'] ? route('pumk-admin.mitra.angsuran.bukti.view', [$mitra, $pinjaman, $row['editable_angsuran']['id']]) : '' }}"
-                                                data-bukti-delete-url="{{ $row['editable_angsuran']['has_bukti'] ? route('pumk-admin.mitra.angsuran.bukti.destroy', [$mitra, $pinjaman, $row['editable_angsuran']['id']]) : '' }}"
+                                                data-bukti-view-url="{{ $row['editable_angsuran']['has_bukti'] ? route($mitraRoutePrefix.'.angsuran.bukti.view', [$mitra, $pinjaman, $row['editable_angsuran']['id']]) : '' }}"
+                                                data-bukti-delete-url="{{ $row['editable_angsuran']['has_bukti'] ? route($mitraRoutePrefix.'.angsuran.bukti.destroy', [$mitra, $pinjaman, $row['editable_angsuran']['id']]) : '' }}"
                                                 data-pokok="{{ (int) round((float) $row['editable_angsuran']['pokok']) }}"
                                                 data-bunga="{{ (int) round((float) $row['editable_angsuran']['bunga']) }}"
                                                 data-denda="{{ (int) round((float) $row['editable_angsuran']['denda']) }}">Edit</button>

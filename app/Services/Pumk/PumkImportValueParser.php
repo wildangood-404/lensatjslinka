@@ -81,6 +81,7 @@ final class PumkImportValueParser
             'kurang_lancar' => 'kurang_lancar',
             'diragukan' => 'diragukan',
             'macet' => 'macet',
+            'bermasalah' => 'bermasalah',
         ];
 
         if (! isset($map[$normalized])) {

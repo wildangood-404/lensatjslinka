@@ -6,6 +6,7 @@ use App\Models\PumkPinjaman;
 use App\Services\Pumk\PiutangCalculator;
 use App\Services\Pumk\PumkCollectibilitySummaryService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PumkOutstandingReportController extends Controller
@@ -15,12 +16,17 @@ class PumkOutstandingReportController extends Controller
         'kurang_lancar' => 'Kurang Lancar',
         'diragukan' => 'Diragukan',
         'macet' => 'Macet',
+        'bermasalah' => 'Bermasalah',
     ];
 
-    private const PROBLEM_CATEGORIES = ['kurang_lancar', 'diragukan', 'macet'];
+    private const PROBLEM_CATEGORIES = ['kurang_lancar', 'diragukan', 'macet', 'bermasalah'];
 
-    public function __invoke(PiutangCalculator $calculator): View
+    public function __invoke(Request $request, PiutangCalculator $calculator): View
     {
+        $sourceCategory = $request->routeIs('pumk-admin.umkm-binaan-bri.*') ? 'bri' : 'reguler';
+        $pageTitle = $sourceCategory === 'bri'
+            ? 'Report Outstanding UMKM Binaan Via BRI'
+            : 'Report Outstanding UMKM Binaan';
         $regions = [];
         $sectors = [];
         $totals = $this->emptyGroup('Total');
@@ -39,6 +45,7 @@ class PumkOutstandingReportController extends Controller
                 })->orWhere('status', PumkPinjaman::STATUS_LUNAS);
             })
             ->when($excludedSourceKeys !== [], fn (Builder $query) => $query->whereNotIn('source_key', $excludedSourceKeys))
+            ->whereHas('mitra', fn (Builder $query) => $query->where('kategori_binaan', $sourceCategory))
             ->with(['mitra.wilayah', 'mitra.sektorUsaha', 'saldoAwal', 'angsuran'])
             ->chunkById(200, function ($loans) use (&$regions, &$sectors, &$totals, &$qualityRows, &$qualityTotals, &$unratedLoans, $calculator): void {
                 foreach ($loans as $loan) {
@@ -84,6 +91,7 @@ class PumkOutstandingReportController extends Controller
         ksort($sectors, SORT_NATURAL | SORT_FLAG_CASE);
 
         return view('pumk-admin.umkm-binaan.report-outstanding', [
+            'pageTitle' => $pageTitle,
             'regionRows' => array_map($this->presentGroup(...), array_values($regions)),
             'regionTotal' => $this->presentGroup($totals),
             'sectorRows' => array_map($this->presentGroup(...), array_values($sectors)),
@@ -124,7 +132,7 @@ class PumkOutstandingReportController extends Controller
     }
 
     /** @param array<string, mixed> $group
-     *  @return array{label:?string,mitra_count:int,principal:string,interest:string,problem_count?:int,problem_principal?:string,problem_interest?:string}
+     * @return array{label:?string,mitra_count:int,principal:string,interest:string,problem_count?:int,problem_principal?:string,problem_interest?:string}
      */
     private function presentGroup(array $group): array
     {
@@ -138,7 +146,7 @@ class PumkOutstandingReportController extends Controller
     }
 
     /** @param array<string, mixed> $amounts
-     *  @return array{label:?string,mitra_count:int,principal:string,interest:string}
+     * @return array{label:?string,mitra_count:int,principal:string,interest:string}
      */
     private function presentAmounts(array $amounts, ?string $label = null): array
     {

@@ -32,19 +32,25 @@
         $selectedVerificationAssistance = is_array($selectedVerificationAssistance) ? $selectedVerificationAssistance : [];
         $selectedRoutes = old('jalur_pengajuan', $program->jalur_pengajuan ?? []);
         $selectedRoutes = is_array($selectedRoutes) ? $selectedRoutes : [];
-        $vendorRows = old('vendors', $program->verificationVendors->map(fn ($vendor) => [
+        $vendorRows = old('vendors', $program->verificationVendors->where('tipe', 'barang')->map(fn ($vendor) => [
             'nama_vendor' => $vendor->nama_vendor,
             'rincian_barang' => $vendor->rincian_barang,
             'harga' => number_format((float) $vendor->harga, 0, ',', '.'),
         ])->all());
         $vendorRows = is_array($vendorRows) && $vendorRows !== [] ? $vendorRows : [['nama_vendor' => '', 'rincian_barang' => '', 'harga' => '']];
+        $serviceVendorRows = old('service_vendors', $program->verificationVendors->where('tipe', 'jasa')->map(fn ($vendor) => [
+            'nama_vendor' => $vendor->nama_vendor,
+            'rincian_jasa' => $vendor->rincian_jasa,
+            'harga' => number_format((float) $vendor->harga, 0, ',', '.'),
+        ])->all());
+        $serviceVendorRows = is_array($serviceVendorRows) && $serviceVendorRows !== [] ? $serviceVendorRows : [['nama_vendor' => '', 'rincian_jasa' => '', 'harga' => '']];
         $formAction = $program->exists
             ? route('admin.programs.update', $program)
             : route('admin.programs.store');
         $stageLabels = [
             'proposal' => 'Tahap 1 — Pengajuan Proposal Program',
             'survei' => 'Tahap 2 — Verifikasi Program',
-            'laporan_akhir' => 'Tahap 4 — Pelaporan Akhir',
+            'laporan_akhir' => 'Tahap 5 — Pelaporan Akhir',
             'dokumentasi' => 'Dokumentasi Kegiatan',
         ];
         $statusLabels = [
@@ -73,9 +79,16 @@
         $showStage3 = $program->exists
             && (filled($program->jalur_pengajuan)
                 || in_array($program->status, ['survei_disetujui', 'tertunda', 'pelaksanaan', 'kasbon_disetujui', 'kasbon_ditolak', 'menunggu_review_laporan_akhir', 'revisi_laporan_akhir', 'selesai'], true));
-        $isStage3Active = in_array($program->status, ['survei_disetujui', 'tertunda', 'pelaksanaan'], true);
-        $stage4Statuses = ['pelaksanaan', 'kasbon_disetujui', 'menunggu_review_laporan_akhir', 'revisi_laporan_akhir', 'selesai'];
-        $showStage4 = $program->exists && in_array($program->status, $stage4Statuses, true);
+        $isStage3Active = $program->status === 'survei_disetujui';
+        $stage4Statuses = ['survei_disetujui', 'tertunda', 'pelaksanaan', 'kasbon_disetujui', 'kasbon_ditolak', 'menunggu_review_laporan_akhir', 'revisi_laporan_akhir', 'selesai'];
+        $showStage4 = $program->exists
+            && in_array($program->status, $stage4Statuses, true)
+            && (filled($program->jalur_pengajuan)
+                || in_array($program->status, ['kasbon_disetujui', 'kasbon_ditolak', 'menunggu_review_laporan_akhir', 'revisi_laporan_akhir', 'selesai'], true));
+        $isStage4Active = $program->status === 'tertunda';
+        $stage5Statuses = ['pelaksanaan', 'kasbon_disetujui', 'menunggu_review_laporan_akhir', 'revisi_laporan_akhir', 'selesai'];
+        $showStage5 = $program->exists && in_array($program->status, $stage5Statuses, true);
+        $isStage5Active = in_array($program->status, ['pelaksanaan', 'kasbon_disetujui', 'menunggu_review_laporan_akhir', 'revisi_laporan_akhir'], true);
         $money = fn ($value) => $value === null || $value === '' ? '' : number_format((float) $value, 0, ',', '.');
     @endphp
 
@@ -255,7 +268,7 @@
                 @if($program->exists) @method('PUT') @endif
                 <input type="hidden" name="jenis_kerjasama" id="jenis-kerjasama" value="{{ old('jenis_kerjasama', $program->jenis_kerjasama ?: 'pks') }}">
 
-                <section class="program-card stage-card" x-data="{ open: true }">
+                <section id="stage-1" class="program-card stage-card" x-data="{ open: true }">
                     @include('admin.programs.partials.stage-accordion-header', [
                         'bodyId' => 'stage-1-edit-content',
                         'stageNumber' => '01',
@@ -412,7 +425,7 @@
                 </section>
             </form>
         @elseif($program->exists)
-            <section class="program-card stage-card" x-data="{ open: @js($isStage1Open) }">
+            <section id="stage-1" class="program-card stage-card" x-data="{ open: @js($isStage1Open) }">
                 @include('admin.programs.partials.stage-accordion-header', [
                     'bodyId' => 'stage-1-detail-content',
                     'stageNumber' => '01',
@@ -489,7 +502,7 @@
         @endif
 
         @if($hasStage2Summary)
-            <section class="program-card stage-card" x-data="{ open: @js(in_array($program->status, ['menunggu_review_survei', 'perbaikan'], true)) }">
+            <section id="stage-2" class="program-card stage-card" x-data="{ open: @js(in_array($program->status, ['menunggu_review_survei', 'perbaikan'], true)) }">
                 @include('admin.programs.partials.stage-accordion-header', [
                     'bodyId' => 'stage-2-detail-content',
                     'stageNumber' => '02',
@@ -532,7 +545,7 @@
                     @if(in_array('uang', $program->jenis_bantuan_verifikasi ?? [], true))
                         <div class="verification-detail-assistance">
                             <h4 class="verification-detail-assistance-title">Uang</h4>
-                            <div>Sumber: {{ $program->sumber_pencairan === 'lainnya' ? $program->sumber_pencairan_lainnya : str_replace('_', ' ', ucfirst($program->sumber_pencairan ?? '-')) }}</div>
+                            <div>Sumber: {{ $program->sumber_pencairan === 'lainnya' ? $program->sumber_pencairan_lainnya : ($program->sumber_pencairan === 'kas_bon' ? 'Kasbon' : ucfirst(str_replace('_', ' ', $program->sumber_pencairan ?? '-'))) }}</div>
                             <div>Nama Pemilik Rekening: {{ $program->nama_pemilik_rekening ?: '-' }}</div>
                             <div>Nomor Rekening: {{ $program->nomor_rekening ?: '-' }}</div>
                             <div>Nama Bank: {{ $program->nama_bank ?: '-' }}</div>
@@ -543,8 +556,8 @@
                             <h4 class="verification-detail-assistance-title">Barang</h4>
                             <div>Jalur: {{ $program->jalur_pengadaan_barang === 'barang_bekas' ? 'Barang Bekas Tidak Terpakai / Sisa Produksi' : 'Proses Pengadaan' }}</div>
                             @if($program->jalur_pengadaan_barang === 'proses_pengadaan')
-                                <div>Sub-jalur: {{ $program->sub_jalur_pengadaan === 'non_logistik' ? 'Non Logistik (Kas Bon / Pembelian Barang Langsung)' : 'Logistik' }}</div>
-                                @foreach($program->verificationVendors as $vendor)
+                                <div>Sub-jalur: {{ $program->sub_jalur_pengadaan === 'non_logistik' ? 'Non Logistik (Kasbon / Pembelian Barang Langsung)' : 'Logistik' }}</div>
+                                @foreach($program->verificationVendors->where('tipe', 'barang') as $vendor)
                                     <div>{{ $vendor->nama_vendor }} — {{ $vendor->rincian_barang }}{{ $vendor->harga !== null ? ' — Rp '.number_format((float) $vendor->harga, 0, ',', '.') : '' }}</div>
                                 @endforeach
                             @else
@@ -556,7 +569,11 @@
                     @if(in_array('jasa', $program->jenis_bantuan_verifikasi ?? [], true))
                         <div class="verification-detail-assistance">
                             <h4 class="verification-detail-assistance-title">Jasa</h4>
-                            {{ $program->kategori_jasa === 'lainnya' ? ($program->keterangan_jasa_verifikasi ?: 'Lainnya') : ucfirst(str_replace('_', ' ', $program->kategori_jasa ?? '-')) }}
+                            <div>Kategori: {{ $program->kategori_jasa === 'non_logistik' ? 'Non Logistik (Kasbon / Pembayaran Jasa Langsung)' : ucfirst(str_replace('_', ' ', $program->kategori_jasa ?? '-')) }}</div>
+                            <div>Keterangan Jasa: {{ $program->keterangan_jasa_verifikasi ?: '-' }}</div>
+                            @foreach($program->verificationVendors->where('tipe', 'jasa') as $vendor)
+                                <div>{{ $vendor->nama_vendor }} — {{ $vendor->rincian_jasa }}{{ $vendor->harga !== null ? ' — Rp '.number_format((float) $vendor->harga, 0, ',', '.') : '' }}</div>
+                            @endforeach
                         </div>
                     @endif
                     </section>
@@ -574,7 +591,7 @@
         @endif
 
             @if($isStage2FormActive)
-                <section class="program-card stage-card" x-data="{ open: true }">
+                <section id="stage-2-edit" class="program-card stage-card" x-data="{ open: true }">
                     @include('admin.programs.partials.stage-accordion-header', [
                         'bodyId' => 'stage-2-edit-content',
                         'stageNumber' => '02',
@@ -693,7 +710,7 @@
                                         <div class="program-field verification-full-width">
                                             <span>Sumber / Mekanisme Pencairan <span aria-hidden="true">*</span></span>
                                             <div class="verification-cash-source-options grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                                @foreach(['kas_bon' => 'Kas Bon', 'dana_sharing' => 'Dana Sharing', 'lainnya' => 'Lainnya'] as $value => $label)
+                                                @foreach(['kas_bon' => 'Kasbon', 'dana_sharing' => 'Dana Sharing', 'lainnya' => 'Lainnya'] as $value => $label)
                                                     <label class="program-choice"><input type="radio" name="sumber_pencairan" value="{{ $value }}" @checked(old('sumber_pencairan', $program->sumber_pencairan) === $value)><span>{{ $label }}</span></label>
                                                 @endforeach
                                             </div>
@@ -735,9 +752,10 @@
                                                 <span>Sub-jalur <span aria-hidden="true">*</span></span>
                                                 <div class="program-types">
                                                     <label class="program-choice"><input type="radio" name="sub_jalur_pengadaan" value="logistik" @checked(old('sub_jalur_pengadaan', $program->sub_jalur_pengadaan) === 'logistik')><span>Logistik</span></label>
-                                                    <label class="program-choice"><input type="radio" name="sub_jalur_pengadaan" value="non_logistik" @checked(old('sub_jalur_pengadaan', $program->sub_jalur_pengadaan) === 'non_logistik')><span>Non Logistik (Kas Bon / Pembelian Barang Langsung)</span></label>
+                                                    <label class="program-choice"><input type="radio" name="sub_jalur_pengadaan" value="non_logistik" @checked(old('sub_jalur_pengadaan', $program->sub_jalur_pengadaan) === 'non_logistik')><span>Non Logistik (Kasbon / Pembelian Barang Langsung)</span></label>
                                                 </div>
                                             </div>
+                                            <div class="{{ old('sub_jalur_pengadaan', $program->sub_jalur_pengadaan) === 'non_logistik' ? '' : 'program-hidden' }}" data-goods-vendors>
                                             <h5 class="verification-vendor-heading">Usulan Vendor</h5>
                                             <div class="program-item-list" data-vendor-list>
                                                 @foreach($vendorRows as $index => $vendor)
@@ -759,6 +777,7 @@
                                                 @endforeach
                                             </div>
                                             <button class="program-add-item" type="button" data-add-vendor>+ Tambah Vendor/Barang</button>
+                                            </div>
                                         </div>
                                         <div class="{{ old('jalur_pengadaan_barang', $program->jalur_pengadaan_barang) === 'barang_bekas' ? '' : 'program-hidden' }} verification-fields-grid verification-full-width" data-used-goods-fields>
                                             <div class="program-field">
@@ -780,14 +799,37 @@
                                             <label for="kategori-jasa">Kategori Jasa <span aria-hidden="true">*</span></label>
                                             <select id="kategori-jasa" name="kategori_jasa">
                                                 <option value="">Pilih kategori</option>
-                                                @foreach(['logistik' => 'Logistik', 'non_logistik' => 'Non Logistik', 'lainnya' => 'Lainnya'] as $value => $label)
+                                                @foreach(['logistik' => 'Logistik', 'non_logistik' => 'Non Logistik (Kasbon / Pembayaran Jasa Langsung)', 'lainnya' => 'Lainnya'] as $value => $label)
                                                     <option value="{{ $value }}" @selected(old('kategori_jasa', $program->kategori_jasa) === $value)>{{ $label }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
-                                        <div class="program-field {{ old('kategori_jasa', $program->kategori_jasa) === 'lainnya' ? '' : 'program-hidden' }}" data-service-other>
+                                        <div class="program-field verification-full-width {{ old('kategori_jasa', $program->kategori_jasa) ? '' : 'program-hidden' }}" data-service-description>
                                             <label for="keterangan-jasa-verifikasi">Keterangan Jasa <span aria-hidden="true">*</span></label>
-                                            <input id="keterangan-jasa-verifikasi" name="keterangan_jasa_verifikasi" value="{{ old('keterangan_jasa_verifikasi', $program->keterangan_jasa_verifikasi) }}" placeholder="Tuliskan rincian jasa">
+                                            <input id="keterangan-jasa-verifikasi" name="keterangan_jasa_verifikasi" value="{{ old('keterangan_jasa_verifikasi', $program->keterangan_jasa_verifikasi) }}" placeholder="Tuliskan keterangan jasa">
+                                        </div>
+                                        <div class="verification-full-width {{ old('kategori_jasa', $program->kategori_jasa) === 'non_logistik' ? '' : 'program-hidden' }}" data-service-vendors>
+                                            <h5 class="verification-vendor-heading">Usulan Vendor Jasa</h5>
+                                            <div class="program-item-list" data-service-vendor-list>
+                                                @foreach($serviceVendorRows as $index => $vendor)
+                                                    <div class="program-item-row verification-vendor-row">
+                                                        <div class="program-field">
+                                                            <label for="service-vendor-{{ $index }}-nama">Nama Vendor <span aria-hidden="true">*</span></label>
+                                                            <input id="service-vendor-{{ $index }}-nama" name="service_vendors[{{ $index }}][nama_vendor]" value="{{ $vendor['nama_vendor'] ?? '' }}" placeholder="Nama Vendor">
+                                                        </div>
+                                                        <div class="program-field">
+                                                            <label for="service-vendor-{{ $index }}-rincian">Rincian Jasa <span aria-hidden="true">*</span></label>
+                                                            <input id="service-vendor-{{ $index }}-rincian" name="service_vendors[{{ $index }}][rincian_jasa]" value="{{ $vendor['rincian_jasa'] ?? '' }}" placeholder="Rincian Jasa">
+                                                        </div>
+                                                        <div class="program-field">
+                                                            <label for="service-vendor-{{ $index }}-harga">Harga (Rp) <span aria-hidden="true">*</span></label>
+                                                            <input id="service-vendor-{{ $index }}-harga" name="service_vendors[{{ $index }}][harga]" inputmode="numeric" value="{{ $vendor['harga'] ?? '' }}" placeholder="Masukkan harga">
+                                                        </div>
+                                                        <button class="program-remove-item" type="button" data-remove-item>Hapus</button>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                            <button class="program-add-item" type="button" data-add-service-vendor>+ Tambah Vendor/Jasa</button>
                                         </div>
                                     </div>
                                 </div>
@@ -820,6 +862,9 @@
                                     @foreach($documents->where('kategori_tahap', 'survei')->where('document_type', 'lainnya') as $document)
                                         @include('admin.programs.partials.document-row', ['document' => $document, 'label' => $document->nama_dokumen, 'routePrefix' => 'admin', 'editable' => true])
                                     @endforeach
+                                    @foreach($documents->where('kategori_tahap', 'survei')->where('document_type', 'dokumentasi_verifikasi') as $document)
+                                        @include('admin.programs.partials.document-row', ['document' => $document, 'label' => 'Dokumentasi', 'routePrefix' => 'admin', 'editable' => true])
+                                    @endforeach
                                     <div class="program-doc-row">
                                         <strong>Berkas Tambahan</strong>
                                         <input name="survey_documents[tambahan_awal][nama]" placeholder="Masukkan nama dokumen">
@@ -832,6 +877,16 @@
                                     </div>
                                 </div>
                                 <button type="button" class="program-add-item" data-add-document="survey-document-rows" data-field="survey_documents" data-stage="survei">+ Tambah Dokumen</button>
+                                <div class="mt-5 border-t border-slate-200 pt-5">
+                                    <h3 class="program-subsection-title">Dokumentasi</h3>
+                                    <p class="mb-3 text-sm text-slate-600">Unggah satu atau beberapa foto atau dokumen pendukung. Maksimal 10 MB per file.</p>
+                                    <div class="program-file-picker">
+                                        <input id="phase2-documentation" type="file" name="phase2_documentation[]" multiple>
+                                        <label for="phase2-documentation">Pilih Dokumentasi</label>
+                                        <span class="program-filename" data-phase2-file-names>Belum ada file dipilih</span>
+                                    </div>
+                                    <div id="phase2-documentation-preview" class="mt-3 space-y-2"></div>
+                                </div>
                             </section>
                         </div>
                         <button class="program-blue" style="margin-top:12px">Ajukan Verifikasi Program</button>
@@ -855,90 +910,85 @@
                 </section>
             @endif
 
-            @if(! $isSuperAdmin && $program->status === 'survei_disetujui' && empty($program->jenis_bantuan_verifikasi))
-                <section class="program-card">
-                    <h2 class="program-section-title">Proses Kasbon (Alur Lama)</h2>
-                    <form id="kasbon-form" method="POST" action="{{ route('admin.programs.kasbon.update', $program) }}">
-                        @csrf
-                        <div class="program-types">
-                            <label class="program-choice"><input type="radio" name="kasbon_status" value="disetujui" required><span>Disetujui</span></label>
-                            <label class="program-choice"><input type="radio" name="kasbon_status" value="ditolak" required><span>Ditolak</span></label>
-                        </div>
-                        <div class="program-field program-hidden" data-kasbon-field="realisasi_anggaran"><label>Realisasi Anggaran (Rupiah)</label><input name="realisasi_anggaran" inputmode="numeric" placeholder="Masukkan realisasi anggaran"></div>
-                        <div class="program-field program-hidden" data-kasbon-field="catatan_penolakan"><label>Catatan Penolakan</label><textarea name="catatan_penolakan" placeholder="Jelaskan alasan penolakan"></textarea></div>
-                        <button class="program-blue" style="margin-top:12px">Simpan Keputusan Kasbon</button>
-                    </form>
-                </section>
-            @endif
-
             @if($showStage3)
-                @php($operationalStatus = $program->status_operasional ?: $program->status)
-                <section class="program-card stage-card" x-data="{ open: @js($isStage3Active) }">
+                <section id="stage-3" class="program-card stage-card" x-data="{ open: @js($isStage3Active) }">
                     @include('admin.programs.partials.stage-accordion-header', [
                         'bodyId' => 'stage-3-content',
                         'stageNumber' => '03',
                         'stageTitle' => 'Tahap 3 — Tahap Pengajuan',
-                        'stageStatus' => $statusLabels[$operationalStatus] ?? ucfirst(str_replace('_', ' ', $operationalStatus)),
+                        'stageStatus' => 'Pilihan Jalur Pengajuan',
                     ])
                     <div id="stage-3-content" class="stage-card-body" x-show="open" x-transition x-cloak>
-                    <div class="program-field"><span>Status Proses</span><strong>{{ $statusLabels[$operationalStatus] ?? ucfirst(str_replace('_', ' ', $operationalStatus)) }}</strong></div>
-                    <div class="program-field"><span>Jenis Jalur Pengajuan</span><div class="program-readonly">
-                        @php($routeLabels = ['uang_tunai_kas_bon' => 'Uang Tunai (Kas Bon)', 'barang_pengadaan_logistik' => 'Barang (Pengadaan Barang Logistik)', 'barang_bekas_jasa' => 'Permintaan Barang Bekas Tidak Terpakai / Jasa'])
-                        @forelse($program->jalur_pengajuan ?? [] as $route)
-                            <div>{{ $routeLabels[$route] ?? $route }}</div>
-                        @empty
-                            <span>-</span>
-                        @endforelse
-                    </div></div>
-                    @if(filled($program->catatan_operasional))
-                        <div class="program-field"><span>Catatan Penundaan</span><div class="program-readonly">{{ $program->catatan_operasional }}</div></div>
-                    @endif
-                    @if(in_array($program->status, ['pelaksanaan', 'kasbon_disetujui'], true))
-                        <div class="mt-4">
-                            <h3 class="program-subsection-title">Pelaksanaan Program</h3>
-                            <span class="program-status-indicator">Program sedang dilaksanakan</span>
-                        </div>
-                    @endif
-                    @if(! $isSuperAdmin && ! empty($program->jenis_bantuan_verifikasi) && in_array($program->status, ['survei_disetujui', 'tertunda', 'pelaksanaan'], true))
-                    <p class="mb-4 mt-6 text-sm text-slate-600">Pilih jalur pengajuan yang diproses dan perbarui status operasional. Perubahan ini langsung tercatat tanpa menunggu persetujuan Super Admin.</p>
+                    <p class="mb-4 text-sm text-slate-600">Pilih satu atau beberapa jalur pengajuan yang akan ditempuh.</p>
+                    @if(! $isSuperAdmin && in_array($program->status, ['survei_disetujui', 'tertunda', 'pelaksanaan'], true))
                     <form id="pengajuan-form" method="POST" action="{{ route('admin.programs.pengajuan.update', $program) }}">
                         @csrf
                         <div class="program-assistance-options stage3-route-options items-stretch grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            @foreach(['uang_tunai_kas_bon' => 'Uang Tunai (Kas Bon)', 'barang_pengadaan_logistik' => 'Barang (Pengadaan Barang Logistik)', 'barang_bekas_jasa' => 'Permintaan Barang Bekas Tidak Terpakai / Jasa'] as $value => $label)
+                            @foreach(['uang_tunai_kas_bon' => 'Kasbon (Uang Tunai)', 'barang_pengadaan_logistik' => 'Pengadaan Barang Logistik (Barang)', 'barang_bekas_jasa' => 'Permintaan Barang Bekas Tidak Terpakai / Jasa'] as $value => $label)
                                 <label class="program-assistance-check">
                                     <input type="checkbox" name="jalur_pengajuan[]" value="{{ $value }}" @checked(in_array($value, $selectedRoutes, true))>
                                     <span>{{ $label }}</span>
                                 </label>
                             @endforeach
                         </div>
-                        <div class="program-field stage3-status-field">
-                            <span>Status Proses Tahap 3 <span aria-hidden="true">*</span></span>
-                            <div class="stage3-status-options grid grid-cols-2 gap-3">
-                                @foreach(['tertunda' => 'Tertunda', 'pelaksanaan' => 'Pelaksanaan'] as $value => $label)
-                                    <label class="program-choice"><input type="radio" name="status_operasional" value="{{ $value }}" required @checked(old('status_operasional', in_array($program->status, ['tertunda', 'pelaksanaan'], true) ? $program->status : '') === $value)><span>{{ $label }}</span></label>
-                                @endforeach
-                            </div>
-                        </div>
-                        <div class="program-field {{ old('status_operasional', $program->status) === 'tertunda' ? '' : 'program-hidden' }}" data-operational-note>
-                            <label for="catatan-operasional">Catatan / Alasan Penundaan</label>
-                            <textarea id="catatan-operasional" name="catatan_operasional" placeholder="Opsional">{{ old('catatan_operasional', $program->catatan_operasional) }}</textarea>
-                        </div>
-                        <button class="program-blue" style="margin-top:12px">Simpan Status Pengajuan</button>
+                        <button class="program-blue" style="margin-top:12px">Simpan Tahap Pengajuan</button>
                     </form>
+                    @else
+                        <div class="program-readonly">
+                            @php($routeLabels = ['uang_tunai_kas_bon' => 'Kasbon (Uang Tunai)', 'barang_pengadaan_logistik' => 'Pengadaan Barang Logistik (Barang)', 'barang_bekas_jasa' => 'Permintaan Barang Bekas Tidak Terpakai / Jasa'])
+                            @forelse($program->jalur_pengajuan ?? [] as $route)
+                                <div>{{ $routeLabels[$route] ?? $route }}</div>
+                            @empty
+                                <span>Belum ada jalur pengajuan yang dipilih.</span>
+                            @endforelse
+                        </div>
                     @endif
                     </div>
                 </section>
             @endif
 
             @if($showStage4)
-                <section class="program-card stage-card" x-data="{ open: @js(in_array($program->status, ['pelaksanaan', 'kasbon_disetujui', 'menunggu_review_laporan_akhir', 'revisi_laporan_akhir'], true)) }">
+                <section id="stage-4" class="program-card stage-card" x-data="{ open: @js($isStage4Active) }">
                     @include('admin.programs.partials.stage-accordion-header', [
                         'bodyId' => 'stage-4-content',
                         'stageNumber' => '04',
+                        'stageTitle' => 'Tahap 4 — Pelaksanaan Program',
+                        'stageStatus' => $statusLabels[$program->status] ?? 'Menunggu Pelaksanaan',
+                    ])
+                    <div id="stage-4-content" class="stage-card-body" x-show="open" x-transition x-cloak>
+                    @if($program->status === 'tertunda' && filled($program->catatan_operasional))
+                        <div class="program-field"><span>Catatan Penundaan</span><div class="program-readonly">{{ $program->catatan_operasional }}</div></div>
+                    @endif
+                    @if(! $isSuperAdmin && in_array($program->status, ['survei_disetujui', 'tertunda', 'pelaksanaan'], true))
+                        <form id="pelaksanaan-form" method="POST" action="{{ route('admin.programs.pelaksanaan.update', $program) }}">
+                            @csrf
+                            <div class="program-types">
+                                @foreach(['tertunda' => 'Tertunda', 'pelaksanaan' => 'Pelaksanaan'] as $value => $label)
+                                    <label class="program-choice"><input type="radio" name="status_operasional" value="{{ $value }}" required @checked(old('status_operasional', $program->status_operasional ?: (in_array($program->status, ['tertunda', 'pelaksanaan'], true) ? $program->status : '')) === $value)><span>{{ $label }}</span></label>
+                                @endforeach
+                            </div>
+                            <div class="program-field {{ old('status_operasional', $program->status_operasional ?: $program->status) === 'tertunda' ? '' : 'program-hidden' }}" data-operational-note>
+                                <label for="catatan-operasional">Catatan Kendala / Alasan Penundaan <span class="font-normal text-slate-500">(opsional)</span></label>
+                                <textarea id="catatan-operasional" name="catatan_operasional" placeholder="Jelaskan kendala jika diperlukan">{{ old('catatan_operasional', $program->catatan_operasional) }}</textarea>
+                            </div>
+                            <button class="program-blue" style="margin-top:12px">Simpan Status Pelaksanaan</button>
+                        </form>
+                    @else
+                        <div class="program-field"><span>Status Pelaksanaan</span><strong>{{ $statusLabels[$program->status] ?? ucfirst(str_replace('_', ' ', $program->status)) }}</strong></div>
+                    @endif
+                    </div>
+                </section>
+            @endif
+
+            @if($showStage5)
+                <section id="stage-5" class="program-card stage-card" x-data="{ open: @js($isStage5Active) }">
+                    @include('admin.programs.partials.stage-accordion-header', [
+                        'bodyId' => 'stage-5-content',
+                        'stageNumber' => '05',
                         'stageTitle' => $stageLabels['laporan_akhir'],
                         'stageStatus' => $statusLabels[$program->status] ?? 'Pelaporan Akhir',
                     ])
-                    <div id="stage-4-content" class="stage-card-body" x-show="open" x-transition x-cloak>
+                    <div id="stage-5-content" class="stage-card-body" x-show="open" x-transition x-cloak>
                     @if($program->nama_program_laporan || $program->no_dokumen_laporan || $program->nilai_program_realisasi !== null)
                         <div class="verification-detail-grid mb-5">
                             <div class="program-field"><span>Nama Program</span><strong>{{ $program->nama_program_laporan ?: $program->nama_program }}</strong></div>
@@ -1110,21 +1160,32 @@
             toggleGroup(cashOther, hasMoney && source === 'lainnya', ['sumber_pencairan_lainnya']);
 
             const goodsRoute = document.querySelector('input[name="jalur_pengadaan_barang"]:checked')?.value;
+            const goodsSubRoute = document.querySelector('input[name="sub_jalur_pengadaan"]:checked')?.value;
             const procurement = document.querySelector('[data-procurement-fields]');
             const usedGoods = document.querySelector('[data-used-goods-fields]');
+            const goodsVendors = document.querySelector('[data-goods-vendors]');
             toggleGroup(procurement, hasGoods && goodsRoute === 'proses_pengadaan', ['sub_jalur_pengadaan']);
             toggleGroup(usedGoods, hasGoods && goodsRoute === 'barang_bekas', ['sumber_barang', 'deskripsi_barang']);
-            if (procurement && hasGoods && goodsRoute === 'proses_pengadaan') {
-                procurement.querySelectorAll('[data-vendor-list] .program-item-row input').forEach((control) => {
-                    control.required = true;
-                });
-            }
+            const goodsVendorActive = hasGoods && goodsRoute === 'proses_pengadaan' && goodsSubRoute === 'non_logistik';
+            toggleGroup(goodsVendors, goodsVendorActive);
+            goodsVendors?.querySelectorAll('.program-item-row input').forEach((control) => {
+                control.required = goodsVendorActive;
+            });
 
             const serviceType = document.getElementById('kategori-jasa')?.value;
-            toggleGroup(document.querySelector('[data-service-other]'), hasService && serviceType === 'lainnya', ['keterangan_jasa_verifikasi']);
+            const serviceDescription = document.querySelector('[data-service-description]');
+            const serviceVendors = document.querySelector('[data-service-vendors]');
+            const serviceVendorsActive = hasService && serviceType === 'non_logistik';
+            toggleGroup(serviceDescription, hasService && Boolean(serviceType), ['keterangan_jasa_verifikasi']);
+            toggleGroup(serviceVendors, serviceVendorsActive);
+            serviceVendors?.querySelectorAll('.program-item-row input').forEach((control) => {
+                control.required = serviceVendorsActive;
+            });
         };
         verificationToggles.forEach((input) => input.addEventListener('change', updateVerificationFields));
         document.querySelectorAll('#survey-form input[name="sumber_pencairan"], #survey-form input[name="jalur_pengadaan_barang"], #survey-form select[name="kategori_jasa"]')
+            .forEach((input) => input.addEventListener('change', updateVerificationFields));
+        document.querySelectorAll('#survey-form input[name="sub_jalur_pengadaan"]')
             .forEach((input) => input.addEventListener('change', updateVerificationFields));
         updateVerificationFields();
 
@@ -1134,37 +1195,49 @@
             const match = input.name.match(/vendors\[(\d+)\]/);
             if (match) nextVendorIndex = Math.max(nextVendorIndex, Number(match[1]) + 1);
         });
-        document.querySelector('[data-add-vendor]')?.addEventListener('click', () => {
-            if (!vendorList) return;
-            const index = nextVendorIndex++;
+        const appendVendorRow = (list, index, type) => {
+            if (!list) return;
+            const isService = type === 'service';
             const row = document.createElement('div');
             row.className = 'program-item-row verification-vendor-row';
             row.innerHTML = `
                 <div class="program-field">
-                    <label for="vendor-${index}-nama">Nama Vendor <span aria-hidden="true">*</span></label>
-                    <input id="vendor-${index}-nama" name="vendors[${index}][nama_vendor]" placeholder="Nama Vendor" required>
+                    <label for="${type}-vendor-${index}-nama">Nama Vendor <span aria-hidden="true">*</span></label>
+                    <input id="${type}-vendor-${index}-nama" name="${isService ? 'service_vendors' : 'vendors'}[${index}][nama_vendor]" placeholder="Nama Vendor">
                 </div>
                 <div class="program-field">
-                    <label for="vendor-${index}-rincian">Rincian Barang <span aria-hidden="true">*</span></label>
-                    <input id="vendor-${index}-rincian" name="vendors[${index}][rincian_barang]" placeholder="Rincian Barang" required>
+                    <label for="${type}-vendor-${index}-rincian">${isService ? 'Rincian Jasa' : 'Rincian Barang'} <span aria-hidden="true">*</span></label>
+                    <input id="${type}-vendor-${index}-rincian" name="${isService ? 'service_vendors' : 'vendors'}[${index}][${isService ? 'rincian_jasa' : 'rincian_barang'}]" placeholder="${isService ? 'Rincian Jasa' : 'Rincian Barang'}">
                 </div>
                 <div class="program-field">
-                    <label for="vendor-${index}-harga">Harga (Rp) <span aria-hidden="true">*</span></label>
-                    <input id="vendor-${index}-harga" name="vendors[${index}][harga]" inputmode="numeric" placeholder="Masukkan harga" required>
+                    <label for="${type}-vendor-${index}-harga">Harga (Rp) <span aria-hidden="true">*</span></label>
+                    <input id="${type}-vendor-${index}-harga" name="${isService ? 'service_vendors' : 'vendors'}[${index}][harga]" inputmode="numeric" placeholder="Masukkan harga">
                 </div>
                 <button class="program-remove-item" type="button" data-remove-item>Hapus</button>
             `;
-            vendorList.appendChild(row);
+            list.appendChild(row);
+            updateVerificationFields();
+        };
+        document.querySelector('[data-add-vendor]')?.addEventListener('click', () => appendVendorRow(vendorList, nextVendorIndex++, 'goods'));
+        const serviceVendorList = document.querySelector('[data-service-vendor-list]');
+        let nextServiceVendorIndex = 0;
+        serviceVendorList?.querySelectorAll('input[name]').forEach((input) => {
+            const match = input.name.match(/service_vendors\[(\d+)\]/);
+            if (match) nextServiceVendorIndex = Math.max(nextServiceVendorIndex, Number(match[1]) + 1);
         });
-        vendorList?.addEventListener('click', (event) => {
-            if (event.target.closest('[data-remove-item]')) event.target.closest('.program-item-row').remove();
-        });
-        vendorList?.addEventListener('input', (event) => {
+        document.querySelector('[data-add-service-vendor]')?.addEventListener('click', () => appendVendorRow(serviceVendorList, nextServiceVendorIndex++, 'service'));
+        [vendorList, serviceVendorList].forEach((list) => list?.addEventListener('click', (event) => {
+            if (event.target.closest('[data-remove-item]')) {
+                event.target.closest('.program-item-row').remove();
+                updateVerificationFields();
+            }
+        }));
+        [vendorList, serviceVendorList].forEach((list) => list?.addEventListener('input', (event) => {
             if (event.target.matches('input[name$="[harga]"]')) {
                 const digits = event.target.value.replace(/\D/g, '');
                 event.target.value = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             }
-        });
+        }));
         const operationalNote = document.querySelector('[data-operational-note]');
         document.querySelectorAll('input[name="status_operasional"]').forEach((input) => input.addEventListener('change', () => {
             const showNote = input.checked && input.value === 'tertunda';
@@ -1186,6 +1259,46 @@
                 control.required = active;
             });
         }));
+        const phase2Documentation = document.getElementById('phase2-documentation');
+        const phase2DocumentationNames = document.querySelector('[data-phase2-file-names]');
+        const phase2DocumentationPreview = document.getElementById('phase2-documentation-preview');
+        const renderPhase2Documentation = () => {
+            if (!phase2Documentation || !phase2DocumentationNames || !phase2DocumentationPreview) return;
+            const files = Array.from(phase2Documentation.files);
+            phase2DocumentationNames.textContent = files.length
+                ? `${files.length} file dipilih`
+                : 'Belum ada file dipilih';
+            phase2DocumentationPreview.replaceChildren();
+            files.forEach((file, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm';
+                if (file.type.startsWith('image/')) {
+                    const preview = document.createElement('img');
+                    preview.src = URL.createObjectURL(file);
+                    preview.alt = '';
+                    preview.className = 'h-12 w-12 shrink-0 rounded object-cover';
+                    row.appendChild(preview);
+                }
+                const fileName = document.createElement('span');
+                fileName.className = 'min-w-0 truncate';
+                fileName.textContent = file.name;
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'program-delete shrink-0';
+                remove.textContent = 'Hapus';
+                remove.addEventListener('click', () => {
+                    const transfer = new DataTransfer();
+                    Array.from(phase2Documentation.files).forEach((selectedFile, selectedIndex) => {
+                        if (selectedIndex !== index) transfer.items.add(selectedFile);
+                    });
+                    phase2Documentation.files = transfer.files;
+                    renderPhase2Documentation();
+                });
+                row.append(fileName, remove);
+                phase2DocumentationPreview.appendChild(row);
+            });
+        };
+        phase2Documentation?.addEventListener('change', renderPhase2Documentation);
         const assistanceCounters = {};
         document.querySelectorAll('[data-item-list]').forEach((list) => {
             const type = list.dataset.itemList;

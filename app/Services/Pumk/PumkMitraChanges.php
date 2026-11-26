@@ -28,10 +28,12 @@ class PumkMitraChanges
         PumkClassificationService $classifications,
         PumkLoanSnapshotService $snapshots,
         PumkLoanSettlementService $settlement,
+        string $sourceCategory = 'reguler',
     ): RedirectResponse {
         $data = $this->input->validateMitra($request);
 
         $existingArchived = PumkMitra::query()
+            ->where('kategori_binaan', $sourceCategory)
             ->whereRaw('LOWER(nama_mitra) = ?', [mb_strtolower(trim($data['nama_mitra']))])
             ->whereDoesntHave('pinjamanAktif')
             ->first();
@@ -43,8 +45,9 @@ class PumkMitraChanges
 
         $newFilePaths = [];
         try {
-            $mitra = DB::transaction(function () use ($request, $data, $calculator, $activity, $documents, $classifications, $snapshots, $settlement, &$newFilePaths): PumkMitra {
+            $mitra = DB::transaction(function () use ($request, $data, $calculator, $activity, $documents, $classifications, $snapshots, $settlement, $sourceCategory, &$newFilePaths): PumkMitra {
                 $mitra = PumkMitra::create($this->input->mitraPayload($data) + [
+                    'kategori_binaan' => $sourceCategory,
                     'source_key' => hash('sha256', 'manual-mitra|'.Str::uuid()),
                     'created_by' => auth('pumk')->id(),
                     'is_active' => true,
@@ -82,7 +85,7 @@ class PumkMitraChanges
         }
 
         return redirect()
-            ->route('pumk-admin.umkm-binaan.show', $mitra)
+            ->route($sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.show' : 'pumk-admin.umkm-binaan.show', $mitra)
             ->with('success', 'Mitra binaan berhasil ditambahkan.');
     }
 
@@ -95,7 +98,9 @@ class PumkMitraChanges
         PumkClassificationService $classifications,
         PumkLoanSnapshotService $snapshots,
         PumkLoanSettlementService $settlement,
+        string $sourceCategory = 'reguler',
     ): RedirectResponse {
+        abort_unless($mitra->kategori_binaan === $sourceCategory, 404);
         $request->validate([
             'pinjaman_id' => ['nullable', 'integer'],
             'new_loan' => ['prohibited'],
@@ -209,8 +214,11 @@ class PumkMitraChanges
         }
 
         $redirect = $request->boolean('return_to_profile')
-            ? redirect()->route('pumk-admin.umkm-binaan.show', $mitra)
-            : redirect()->route('pumk-admin.mitra.show', $request->filled('pinjaman_id') ? [$mitra, 'pinjaman' => $loanId] : $mitra);
+            ? redirect()->route($sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.show' : 'pumk-admin.umkm-binaan.show', $mitra)
+            : redirect()->route(
+                $sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.card' : 'pumk-admin.mitra.show',
+                $request->filled('pinjaman_id') ? [$mitra, 'pinjaman' => $loanId] : $mitra,
+            );
 
         return $redirect->with('success', 'Data administrasi dan dokumen berhasil disimpan.');
     }

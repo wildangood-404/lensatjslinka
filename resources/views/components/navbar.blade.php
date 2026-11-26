@@ -2,7 +2,7 @@
     $publicNavbarUser = auth('web')->user();
     $publicNavbarName = trim(($publicNavbarUser?->nama_depan ?? '').' '.($publicNavbarUser?->nama_belakang ?? ''));
     $myDashboardRoute = $publicNavbarUser ? app(\App\Services\Auth\LoginDestination::class)->routeFor($publicNavbarUser) : null;
-    $monitoringTjslActive = request()->routeIs('home', 'monitoring.tjsl');
+    $monitoringTjslActive = request()->routeIs('monitoring.tjsl');
     $monitoringBriActive = request()->routeIs('monitoring.bri');
     $monitoringInkaActive = request()->routeIs('monitoring.inka');
     $monitoringActive = $monitoringTjslActive || $monitoringBriActive || $monitoringInkaActive;

@@ -58,7 +58,7 @@ class PumkMitraInput
             'persen_bunga' => ['nullable', 'numeric', 'min:0'],
             'pinjaman_bunga' => ['nullable', 'numeric', 'min:0'],
             'nilai_angsuran_bulanan' => ['nullable', 'numeric', 'min:0'],
-            'kolektibilitas' => ['nullable', 'in:lancar,kurang_lancar,diragukan,macet'],
+            'kolektibilitas' => ['nullable', 'in:lancar,kurang_lancar,diragukan,macet,bermasalah'],
             'sisa_pokok' => ['nullable', 'numeric'],
             'sisa_bunga' => ['nullable', 'numeric'],
             'total_sisa' => ['nullable', 'numeric'],

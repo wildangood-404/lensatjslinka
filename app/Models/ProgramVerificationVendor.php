@@ -8,8 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProgramVerificationVendor extends Model
 {
     protected $fillable = [
+        'tipe',
         'nama_vendor',
         'rincian_barang',
+        'rincian_jasa',
         'harga',
     ];
 

@@ -67,19 +67,25 @@
                 </div>
             </div>
 
-            <a href="{{ route('pumk-admin.monitoring.upload') }}" class="pumk-nav-link {{ request()->routeIs('pumk-admin.monitoring.*') ? 'is-active' : '' }}">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 13v6h14v-6"/></svg>
-                <span class="pumk-nav-label">Upload Monitoring</span>
-            </a>
+            <div>
+                <button type="button" class="pumk-menu-button" data-pumk-menu aria-expanded="{{ request()->routeIs('pumk-admin.umkm-binaan-bri.*') ? 'true' : 'false' }}">
+                    <span>
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path d="M5 3.5h14v17H5zM8 7h8M8 11h8M8 15h5"/><path stroke-linecap="round" stroke-linejoin="round" d="m16 14 2 2 3-3"/></svg>
+                        <span class="pumk-nav-label">UMKM Binaan Via BRI</span>
+                    </span>
+                    <svg class="pumk-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="pumk-submenu" data-pumk-submenu @if(! request()->routeIs('pumk-admin.umkm-binaan-bri.*')) hidden @endif>
+                    <a href="{{ route('pumk-admin.umkm-binaan-bri.pumk-bri.index') }}" class="{{ request()->routeIs('pumk-admin.umkm-binaan-bri.pumk-bri.*') ? 'is-active' : '' }}">PUMK BRI</a>
+                    <a href="{{ route('pumk-admin.umkm-binaan-bri.report-outstanding') }}" class="{{ request()->routeIs('pumk-admin.umkm-binaan-bri.report-outstanding') ? 'is-active' : '' }}">Report Outstanding</a>
+                    <a href="{{ route('pumk-admin.umkm-binaan-bri.index') }}" class="{{ request()->routeIs('pumk-admin.umkm-binaan-bri.index', 'pumk-admin.umkm-binaan-bri.show', 'pumk-admin.umkm-binaan-bri.edit', 'pumk-admin.umkm-binaan-bri.card') ? 'is-active' : '' }}">Daftar UMKM Binaan</a>
+                </div>
+            </div>
 
-            <a href="{{ route('pumk-admin.bri-planning.index') }}" class="pumk-nav-link {{ request()->routeIs('pumk-admin.bri-planning.*') ? 'is-active' : '' }}">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19V5m0 14h16M8 16v-4m4 4V8m4 8V6"/></svg>
-                <span class="pumk-nav-label">RKA &amp; Realisasi BRI</span>
-            </a>
             @endunless
 
             @unless($mustChangePassword)
-            <a href="{{ route('home') }}" class="pumk-nav-link">
+            <a href="{{ route('monitoring.tjsl') }}" class="pumk-nav-link">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16v14H4zM7 15l3-3 2 2 4-5 2 2"/></svg>
                 <span class="pumk-nav-label">Monitoring</span>
             </a>
@@ -108,11 +114,13 @@
             localStorage.setItem('pumkAdminSidebarCollapsed', shell.classList.contains('is-collapsed') ? 'true' : 'false');
         });
 
-        document.querySelector('[data-pumk-menu]')?.addEventListener('click', function () {
-            const submenu = document.querySelector('[data-pumk-submenu]');
-            const nextExpanded = this.getAttribute('aria-expanded') !== 'true';
-            this.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
-            submenu.hidden = ! nextExpanded;
+        document.querySelectorAll('[data-pumk-menu]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const submenu = this.parentElement.querySelector('[data-pumk-submenu]');
+                const nextExpanded = this.getAttribute('aria-expanded') !== 'true';
+                this.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
+                submenu.hidden = ! nextExpanded;
+            });
         });
 
         function closeMobile() {

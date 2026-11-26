@@ -1,5 +1,5 @@
         @if($pinjamanList->count() > 1)
-            <form method="GET" action="{{ route('pumk-admin.mitra.show', $mitra) }}" class="pumk-card loan-selector">
+            <form method="GET" action="{{ route($cardRouteName, $mitra) }}" class="pumk-card loan-selector">
                 @if($kartu)<input type="hidden" name="tahun" value="{{ $kartu['tahun_terpilih'] }}">@endif
                 <label for="pinjaman">Riwayat fasilitas pinjaman</label>
                 <select id="pinjaman" name="pinjaman" class="pumk-select" onchange="this.form.submit()">

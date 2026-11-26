@@ -69,12 +69,13 @@ class PumkUmkmBinaanImportController extends Controller
 
     public function import(Request $request, PumkUmkmBinaanImportService $importer): RedirectResponse
     {
+        $sourceCategory = $request->routeIs('pumk-admin.umkm-binaan-bri.*') ? 'bri' : 'reguler';
         $data = $request->validate([
             'import_file' => ['required', 'file', 'max:10240'],
         ]);
-        $result = $importer->import($data['import_file']);
+        $result = $importer->import($data['import_file'], $sourceCategory);
 
-        return redirect()->route('pumk-admin.mitra.create')
+        return redirect()->route($sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.create' : 'pumk-admin.mitra.create')
             ->with('import_result', $result);
     }
 

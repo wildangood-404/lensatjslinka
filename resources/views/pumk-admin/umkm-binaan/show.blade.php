@@ -1,7 +1,12 @@
-<x-layouts.pumk-admin title="Profil UMKM Binaan">
+<x-layouts.pumk-admin :title="$sourceCategory === 'bri' ? 'Profil UMKM Binaan Via BRI' : 'Profil UMKM Binaan'">
     @include('pumk-admin.partials.module-styles')
 
     @php
+        $briMode = $sourceCategory === 'bri';
+        $binaanLabel = $briMode ? 'UMKM Binaan Via BRI' : 'UMKM Binaan';
+        $binaanRoutePrefix = $briMode ? 'pumk-admin.umkm-binaan-bri' : 'pumk-admin.umkm-binaan';
+        $mitraRoutePrefix = $briMode ? 'pumk-admin.umkm-binaan-bri' : 'pumk-admin.mitra';
+        $cardRoute = $briMode ? 'pumk-admin.umkm-binaan-bri.card' : 'pumk-admin.mitra.show';
         $selectedLoan = $mitra->pinjaman->first(
             fn ($loan) => $loan->status === \App\Models\PumkPinjaman::STATUS_AKTIF && $loan->is_active,
         ) ?? $mitra->pinjaman->first();
@@ -56,11 +61,14 @@
             'kurang_lancar' => 'Kurang Lancar',
             'diragukan' => 'Diragukan',
             'macet' => 'Macet',
+            'bermasalah' => 'Bermasalah',
         ];
         $collectibilityClass = match ($selectedLoan?->kolektibilitas) {
             'lancar' => 'is-good',
             'kurang_lancar' => 'is-warning',
-            'diragukan', 'macet' => 'is-danger',
+            'diragukan' => 'is-orange',
+            'macet' => 'is-danger',
+            'bermasalah' => 'is-critical',
             default => 'is-muted',
         };
         $loanStatusLabels = [
@@ -69,7 +77,7 @@
             'reschedule' => 'Reschedule',
             'bermasalah' => 'Bermasalah',
         ];
-        $documents = $mitra->dokumenPendukung->map(function ($document) use ($mitra): array {
+        $documents = $mitra->dokumenPendukung->map(function ($document) use ($mitra, $binaanRoutePrefix): array {
             $previewable = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
             return [
@@ -79,13 +87,13 @@
                 'size' => $document->file_size,
                 'reference' => null,
                 'can_preview' => in_array($document->mime_type, $previewable, true),
-                'preview_url' => route('pumk-admin.umkm-binaan.documents.view', [$mitra, $document]),
-                'download_url' => route('pumk-admin.umkm-binaan.documents.download', [$mitra, $document]),
+                'preview_url' => route($binaanRoutePrefix.'.documents.view', [$mitra, $document]),
+                'download_url' => route($binaanRoutePrefix.'.documents.download', [$mitra, $document]),
             ];
-        })->concat($mitra->pinjaman->flatMap(function ($loan) use ($mitra): array {
+        })->concat($mitra->pinjaman->flatMap(function ($loan) use ($mitra, $binaanRoutePrefix): array {
             $previewable = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-            return $loan->dokumenKontrak->map(function ($document) use ($mitra, $loan, $previewable): array {
+            return $loan->dokumenKontrak->map(function ($document) use ($mitra, $loan, $previewable, $binaanRoutePrefix): array {
                 return [
                     'kind' => \App\Models\PumkPinjamanDokumen::TYPES[$document->jenis_dokumen] ?? 'Dokumen Kontrak',
                     'filename' => $document->nama_file_asli,
@@ -93,8 +101,8 @@
                     'size' => $document->file_size,
                     'reference' => $loan->spj_awal,
                     'can_preview' => in_array($document->mime_type, $previewable, true),
-                    'preview_url' => route('pumk-admin.umkm-binaan.loans.documents.view', [$mitra, $loan, $document]),
-                    'download_url' => route('pumk-admin.umkm-binaan.loans.documents.download', [$mitra, $loan, $document]),
+                    'preview_url' => route($binaanRoutePrefix.'.loans.documents.view', [$mitra, $loan, $document]),
+                    'download_url' => route($binaanRoutePrefix.'.loans.documents.download', [$mitra, $loan, $document]),
                 ];
             })->all();
         }))->values();
@@ -114,7 +122,9 @@
         .umkm-status-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 10px;font-size:10px;font-weight:700;white-space:nowrap}
         .umkm-status-badge.is-good{background:#dcfce7;color:#166534}
         .umkm-status-badge.is-warning{background:#fef3c7;color:#92400e}
+        .umkm-status-badge.is-orange{background:#ffedd5;color:#9a3412}
         .umkm-status-badge.is-danger{background:#fee2e2;color:#991b1b}
+        .umkm-status-badge.is-critical{border:1px solid #7f1d1d;background:#7f1d1d;color:#fff}
         .umkm-status-badge.is-muted{background:#f1f5f9;color:#475569}
         .umkm-profile-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:24px;border:1px solid #e2e8f0;border-radius:12px;background:#f1f5f9;padding:5px}
         .umkm-profile-tabs button{display:flex;min-height:42px;align-items:center;justify-content:center;gap:8px;border:0;border-radius:8px;background:transparent;color:#64748b;font:500 12px Poppins,sans-serif;cursor:pointer}
@@ -187,13 +197,13 @@
         @media(max-width:400px){.umkm-profile-grid{grid-template-columns:1fr}.umkm-hero-top h1{font-size:23px}}
     </style>
 
-    <div class="pumk-page umkm-profile-page bg-slate-50/70 p-4 md:p-8" x-data="{ tab: 'profil' }">
-        <a href="{{ route('pumk-admin.umkm-binaan.index') }}" class="umkm-profile-back">
+    <div class="pumk-page umkm-profile-page bg-slate-50/70 p-4 md:p-8" x-data="{ tab: @js(request()->query('tab') === 'monitoring' ? 'monitoring' : 'profil'), selectTab(tab) { this.tab = tab; const url = new URL(window.location.href); if (tab === 'monitoring') url.searchParams.set('tab', 'monitoring'); else url.searchParams.delete('tab'); window.history.replaceState({}, '', url); } }">
+        <a href="{{ route($binaanRoutePrefix.'.index') }}" class="umkm-profile-back">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6M9 12h11"/></svg>
             Kembali ke Daftar
         </a>
 
-        <section class="umkm-profile-hero" aria-label="Ringkasan profil UMKM Binaan">
+        <section class="umkm-profile-hero" aria-label="Ringkasan profil {{ $binaanLabel }}">
             <div class="umkm-hero-top">
                 <div>
                     <h1>{{ $mitra->nama_mitra }}</h1>
@@ -208,22 +218,24 @@
                         </span>
                     </div>
                 </div>
-                <a href="{{ route('pumk-admin.umkm-binaan.edit', [$mitra, 'pinjaman' => $selectedLoan?->id, 'return_to_profile' => 1]) }}" class="pumk-primary-button">Edit Profil</a>
+                <a href="{{ route($binaanRoutePrefix.'.edit', [$mitra, 'pinjaman' => $selectedLoan?->id, 'return_to_profile' => 1]) }}" class="pumk-primary-button">Edit Profil</a>
             </div>
-            <nav class="umkm-profile-tabs" role="tablist" aria-label="Navigasi profil UMKM Binaan">
-                <button type="button" role="tab" id="profile-tab" aria-controls="profile-panel" :aria-selected="tab === 'profil'" :class="{ 'is-active': tab === 'profil' }" @click="tab = 'profil'">
-                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5h16v13H4zM8 9h8M8 13h5"/></svg>
-                    Profil
-                </button>
-                <button type="button" role="tab" id="receivable-tab" aria-controls="receivable-panel" :aria-selected="tab === 'piutang'" :class="{ 'is-active': tab === 'piutang' }" @click="tab = 'piutang'">
-                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.5 7.5h17v12h-17zM7 7.5V5h10v2.5M7 12h4m-4 3.5h7"/></svg>
-                    Kartu Piutang
-                </button>
-                <button type="button" role="tab" id="monitoring-tab" aria-controls="monitoring-panel" :aria-selected="tab === 'monitoring'" :class="{ 'is-active': tab === 'monitoring' }" @click="tab = 'monitoring'">
-                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 18.5V5.5m0 13h16M8 15v-4m4 4V7m4 8v-6"/></svg>
-                    Monitoring
-                </button>
-            </nav>
+            @unless($briMode)
+                <nav class="umkm-profile-tabs" role="tablist" aria-label="Navigasi profil UMKM Binaan">
+                    <button type="button" role="tab" id="profile-tab" aria-controls="profile-panel" :aria-selected="tab === 'profil'" :class="{ 'is-active': tab === 'profil' }" @click="selectTab('profil')">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5h16v13H4zM8 9h8M8 13h5"/></svg>
+                        Profil
+                    </button>
+                    <button type="button" role="tab" id="receivable-tab" aria-controls="receivable-panel" :aria-selected="tab === 'piutang'" :class="{ 'is-active': tab === 'piutang' }" @click="selectTab('piutang')">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.5 7.5h17v12h-17zM7 7.5V5h10v2.5M7 12h4m-4 3.5h7"/></svg>
+                        Kartu Piutang
+                    </button>
+                    <button type="button" role="tab" id="monitoring-tab" aria-controls="monitoring-panel" :aria-selected="tab === 'monitoring'" :class="{ 'is-active': tab === 'monitoring' }" @click="selectTab('monitoring')">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 18.5V5.5m0 13h16M8 15v-4m4 4V7m4 8v-6"/></svg>
+                        Monitoring
+                    </button>
+                </nav>
+            @endunless
         </section>
 
         <div id="profile-panel" role="tabpanel" aria-labelledby="profile-tab" x-show="tab === 'profil'" x-cloak>
@@ -236,7 +248,7 @@
                     <div class="lg:col-span-3">
                         <div class="umkm-profile-photo-frame">
                             @if($mitra->pasfoto)
-                                <img src="{{ route('pumk-admin.umkm-binaan.photo', $mitra) }}" alt="Pasfoto pemilik {{ $mitra->nama_mitra }}">
+                                <img src="{{ route($binaanRoutePrefix.'.photo', $mitra) }}" alt="Pasfoto pemilik {{ $mitra->nama_mitra }}">
                             @else
                                 <div class="umkm-profile-photo-empty">
                                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.12a7.5 7.5 0 0 1 15 0"/></svg>
@@ -350,9 +362,11 @@
                         <div class="umkm-profile-item"><span>Kolektibilitas</span><strong>{{ $collectibilityLabels[$selectedLoan->kolektibilitas] ?? 'Belum diisi' }}</strong></div>
                         <div class="umkm-profile-item"><span>Status Pinjaman</span><strong>{{ $loanStatusLabels[$selectedLoan->status_pinjaman] ?? \Illuminate\Support\Str::headline((string) $selectedLoan->status) }}</strong></div>
                     </div>
-                    <div class="mt-4 flex justify-end">
-                        <button type="button" class="pumk-secondary-button" @click="tab = 'piutang'">Lihat Rincian Kartu Piutang</button>
-                    </div>
+                    @unless($briMode)
+                        <div class="mt-4 flex justify-end">
+                            <button type="button" class="pumk-secondary-button" @click="selectTab('piutang')">Lihat Rincian Kartu Piutang</button>
+                        </div>
+                    @endunless
                 @else
                     <div class="umkm-profile-empty"><strong>Belum ada data pinjaman</strong><p>Ringkasan pinjaman akan tampil setelah data pinjaman ditambahkan.</p></div>
                 @endif
@@ -393,6 +407,7 @@
             </section>
         </div>
 
+        @unless($briMode)
         <section id="receivable-panel" class="umkm-profile-card" role="tabpanel" aria-labelledby="receivable-tab" x-show="tab === 'piutang'" x-cloak>
             <div class="umkm-profile-heading">
                 <span class="umkm-profile-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.5 7.5h17v12h-17zM7 7.5V5h10v2.5M7 12h4m-4 3.5h7"/></svg></span>
@@ -415,7 +430,7 @@
                     <div class="umkm-profile-item"><span>Status Pinjaman</span><strong>{{ $loanStatusLabels[$selectedLoan->status_pinjaman] ?? \Illuminate\Support\Str::headline((string) $selectedLoan->status) }}</strong></div>
                 </div>
                 <div class="mt-4 flex justify-end">
-                    <a href="{{ route('pumk-admin.mitra.show', [$mitra, 'pinjaman' => $selectedLoan->id]) }}" class="pumk-primary-button">Buka Halaman Penuh Kartu Piutang</a>
+                    <a href="{{ route($cardRoute, [$mitra, 'pinjaman' => $selectedLoan->id]) }}" class="pumk-primary-button">Buka Halaman Penuh Kartu Piutang</a>
                 </div>
 
                 @if($mitra->pinjaman->isNotEmpty())
@@ -432,7 +447,7 @@
                                         <td>{{ $rupiah($loan->total_sisa) }}</td>
                                         <td>{{ $collectibilityLabels[$loan->kolektibilitas] ?? 'Belum dihitung' }}</td>
                                         <td>{{ $loanStatusLabels[$loan->status_pinjaman] ?? \Illuminate\Support\Str::headline((string) $loan->status) }}</td>
-                                        <td><a href="{{ route('pumk-admin.mitra.show', [$mitra, 'pinjaman' => $loan->id]) }}" class="pumk-table-action">Buka</a></td>
+                                        <td><a href="{{ route($cardRoute, [$mitra, 'pinjaman' => $loan->id]) }}" class="pumk-table-action">Buka</a></td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -469,37 +484,147 @@
         <section id="monitoring-panel" class="umkm-profile-card" role="tabpanel" aria-labelledby="monitoring-tab" x-show="tab === 'monitoring'" x-cloak>
             <div class="umkm-profile-heading">
                 <span class="umkm-profile-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 18.5V5.5m0 13h16M8 15v-4m4 4V7m4 8v-6"/></svg></span>
-                <div><h2>Riwayat Monitoring</h2><p>Snapshot posisi pinjaman mitra dari proses monitoring yang tersimpan.</p></div>
+                <div><h2>Riwayat Monitoring</h2><p>Catatan kunjungan, tindak lanjut, dan dokumentasi lapangan UMKM binaan.</p></div>
             </div>
             @if($monitoringHistory->isNotEmpty())
-                <div class="umkm-table-wrap">
-                    <table class="umkm-profile-table">
-                        <thead><tr><th>Tanggal Snapshot</th><th>Nomor SPJ</th><th>Saldo Pokok</th><th>Saldo Bunga</th><th>Kolektibilitas</th><th>Sumber</th></tr></thead>
-                        <tbody>
-                            @foreach($monitoringHistory as $snapshot)
-                                <tr>
-                                    <td>{{ $snapshot->report?->as_of_date?->format('d-m-Y') ?? '—' }}</td>
-                                    <td>{{ $snapshot->pinjaman?->spj_awal ?: 'Belum diisi' }}</td>
-                                    <td>{{ $rupiah($snapshot->saldo_pokok) }}</td>
-                                    <td>{{ $rupiah($snapshot->saldo_bunga) }}</td>
-                                    <td>{{ $collectibilityLabels[$snapshot->kolektibilitas] ?? 'Belum dihitung' }}</td>
-                                    <td>{{ \Illuminate\Support\Str::headline($snapshot->source_kind) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="umkm-profile-empty">
-                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 18.5V5.5m0 13h16M8 15v-4m4 4V7m4 8v-6"/></svg>
-                    <strong>Belum ada riwayat snapshot monitoring</strong>
-                    <p>Belum ada laporan monitoring tersimpan untuk UMKM binaan ini.</p>
-                </div>
+                <details class="mb-5 rounded-xl border border-slate-200 bg-white p-4">
+                    <summary class="cursor-pointer text-sm font-semibold text-slate-700">Lihat snapshot posisi pinjaman dari Upload Monitoring</summary>
+                    <div class="umkm-table-wrap mt-4">
+                        <table class="umkm-profile-table">
+                            <thead><tr><th>Tanggal Snapshot</th><th>Nomor SPJ</th><th>Saldo Pokok</th><th>Saldo Bunga</th><th>Kolektibilitas</th><th>Sumber</th></tr></thead>
+                            <tbody>
+                                @foreach($monitoringHistory as $snapshot)
+                                    <tr>
+                                        <td>{{ $snapshot->report?->as_of_date?->format('d-m-Y') ?? '—' }}</td>
+                                        <td>{{ $snapshot->pinjaman?->spj_awal ?: 'Belum diisi' }}</td>
+                                        <td>{{ $rupiah($snapshot->saldo_pokok) }}</td>
+                                        <td>{{ $rupiah($snapshot->saldo_bunga) }}</td>
+                                        <td>{{ $collectibilityLabels[$snapshot->kolektibilitas] ?? 'Belum dihitung' }}</td>
+                                        <td>{{ \Illuminate\Support\Str::headline($snapshot->source_kind) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
             @endif
-            <div class="umkm-monitoring-callout">
-                <p>Catatan kunjungan per mitra belum tersedia. Unggah laporan monitoring untuk memperbarui snapshot posisi pinjaman.</p>
-                <a href="{{ route('pumk-admin.monitoring.upload') }}">Buka Upload Monitoring</a>
+
+            <div class="umkm-table-wrap">
+                <table class="umkm-profile-table min-w-[1080px]">
+                    <thead>
+                        <tr>
+                            <th class="w-14 text-center">No.</th>
+                            <th class="text-center">Periode Tahun</th>
+                            <th>Jenis Kunjungan</th>
+                            <th>Tindaklanjut</th>
+                            <th>Keterangan</th>
+                            <th>Dokumentasi</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($monitoringRecords as $record)
+                            @php($attachments = is_array($record->dokumentasi) ? $record->dokumentasi : [])
+                            <tr>
+                                <td class="text-center">{{ $loop->iteration }}</td>
+                                <td class="text-center"><span class="rounded-full bg-blue-50 px-3 py-1 font-semibold text-blue-700">{{ $record->periode_tahun }}</span></td>
+                                <td><span class="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700">{{ $record->jenis_kunjungan }}</span></td>
+                                <td class="whitespace-pre-line">{{ $record->tindak_lanjut }}</td>
+                                <td class="whitespace-pre-line">{{ $record->keterangan ?: '—' }}</td>
+                                <td>
+                                    @if($attachments !== [])
+                                        <div class="flex flex-wrap gap-2">
+                                            @foreach(array_slice($attachments, 0, 4) as $attachment)
+                                                @if(is_array($attachment) && filled($attachment['path'] ?? null))
+                                                    @php($documentUrl = route('pumk-admin.umkm-binaan.monitoring.document', [$mitra, $record, $loop->index]))
+                                                    <a href="{{ $documentUrl }}" target="_blank" rel="noopener noreferrer" title="{{ $attachment['name'] ?? 'Buka dokumentasi' }}" class="block h-16 w-16 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 shadow-sm">
+                                                        @if(str_starts_with((string) ($attachment['mime'] ?? ''), 'image/'))
+                                                            <img src="{{ $documentUrl }}" alt="{{ $attachment['name'] ?? 'Dokumentasi kunjungan' }}" class="h-full w-full object-cover">
+                                                        @else
+                                                            <span class="flex h-full w-full flex-col items-center justify-center gap-1 text-[10px] font-bold text-rose-700"><span class="text-lg">PDF</span><span class="max-w-14 truncate">Buka file</span></span>
+                                                        @endif
+                                                    </a>
+                                                @endif
+                                            @endforeach
+                                            @if(count($attachments) > 4)
+                                                <span class="flex h-16 min-w-16 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 px-2 text-xs font-semibold text-slate-600">+{{ count($attachments) - 4 }} file</span>
+                                            @endif
+                                        </div>
+                                    @else
+                                        <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Tidak ada foto</span>
+                                    @endif
+                                </td>
+                                <td class="text-center text-slate-400">—</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="7" class="py-8 text-center text-slate-500">Belum ada catatan kunjungan monitoring untuk UMKM binaan ini.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
+
+            <section class="mt-6 rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 md:p-6" aria-labelledby="update-monitoring-heading">
+                <div class="mb-5">
+                    <h3 id="update-monitoring-heading" class="text-base font-bold text-slate-900">Update Monitoring</h3>
+                    <p class="mt-1 text-sm text-slate-500">Tambahkan catatan kunjungan dan dokumentasi usaha mitra.</p>
+                </div>
+                <form action="{{ route('pumk-admin.umkm-binaan.monitoring.store', $mitra) }}" method="POST" enctype="multipart/form-data" x-data="{ jenis: @js(old('jenis_kunjungan', 'Kunjungan Rutin')), previews: [], previewFiles(event) { this.previews = Array.from(event.target.files || []).map(file => ({ name: file.name, image: file.type.startsWith('image/'), url: file.type.startsWith('image/') ? URL.createObjectURL(file) : null })); } }">
+                    @csrf
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Periode Tahun <span class="text-rose-600">*</span>
+                            <input type="number" name="periode_tahun" min="1900" max="2100" required value="{{ old('periode_tahun', now()->year) }}" class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                            @error('periode_tahun')<span class="mt-1 block text-xs font-medium text-rose-600">{{ $message }}</span>@enderror
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Jenis Kunjungan <span class="text-rose-600">*</span>
+                            <select name="jenis_kunjungan" x-model="jenis" required class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                @foreach(['Kunjungan Rutin', 'Monitoring Perkembangan Usaha', 'Pembinaan & Pendampingan', 'Penagihan & Restrukturisasi', 'Lainnya'] as $visitType)
+                                    <option value="{{ $visitType }}" @selected(old('jenis_kunjungan', 'Kunjungan Rutin') === $visitType)>{{ $visitType }}</option>
+                                @endforeach
+                            </select>
+                            @error('jenis_kunjungan')<span class="mt-1 block text-xs font-medium text-rose-600">{{ $message }}</span>@enderror
+                            <input x-cloak x-show="jenis === 'Lainnya'" type="text" name="jenis_kunjungan_custom" value="{{ old('jenis_kunjungan_custom') }}" maxlength="120" placeholder="Tuliskan jenis kunjungan" class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                            @error('jenis_kunjungan_custom')<span class="mt-1 block text-xs font-medium text-rose-600">{{ $message }}</span>@enderror
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700 md:col-span-2">
+                            Tindaklanjut <span class="text-rose-600">*</span>
+                            <textarea name="tindak_lanjut" rows="3" required class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">{{ old('tindak_lanjut') }}</textarea>
+                            @error('tindak_lanjut')<span class="mt-1 block text-xs font-medium text-rose-600">{{ $message }}</span>@enderror
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700 md:col-span-2">
+                            Keterangan
+                            <textarea name="keterangan" rows="3" class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">{{ old('keterangan') }}</textarea>
+                            @error('keterangan')<span class="mt-1 block text-xs font-medium text-rose-600">{{ $message }}</span>@enderror
+                        </label>
+                        <div class="md:col-span-2">
+                            <span class="block text-sm font-semibold text-slate-700">Dokumentasi (Foto / Berkas Kunjungan)</span>
+                            <div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white p-4">
+                                <input x-ref="monitoringFiles" type="file" name="dokumentasi[]" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple class="sr-only" @change="previewFiles($event)">
+                                <button type="button" @click="$refs.monitoringFiles.click()" class="inline-flex min-h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">Pilih File</button>
+                                <p class="mt-2 text-xs text-slate-500">Format JPG, JPEG, PNG, WEBP, atau PDF; maksimal 10 MB per file.</p>
+                                @error('dokumentasi')<span class="mt-1 block text-xs font-medium text-rose-600">{{ $message }}</span>@enderror
+                                @error('dokumentasi.*')<span class="mt-1 block text-xs font-medium text-rose-600">{{ $message }}</span>@enderror
+                                <div x-cloak x-show="previews.length" class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                                    <template x-for="(file, index) in previews" :key="`${file.name}-${index}`">
+                                        <div class="min-w-0">
+                                            <div class="flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                                                <template x-if="file.image"><img :src="file.url" :alt="file.name" class="h-full w-full object-cover"></template>
+                                                <template x-if="!file.image"><span class="text-sm font-bold text-rose-700">PDF</span></template>
+                                            </div>
+                                            <p class="mt-1 truncate text-xs text-slate-600" x-text="file.name"></p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-5 flex justify-end">
+                        <button type="submit" class="inline-flex min-h-11 items-center rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">Simpan Update Monitoring</button>
+                    </div>
+                </form>
+            </section>
         </section>
+        @endunless
     </div>
 </x-layouts.pumk-admin>

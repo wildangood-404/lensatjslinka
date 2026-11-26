@@ -15,6 +15,7 @@ class LoginDestination
             'admin' => ['guard' => 'admin', 'dashboard' => 'admin.home', 'profile' => 'admin.profile'],
             'super_admin' => ['guard' => 'superadmin', 'dashboard' => 'superadmin.home', 'profile' => 'superadmin.profile'],
             'pumk_admin' => ['guard' => 'pumk', 'dashboard' => 'pumk-admin.home', 'profile' => 'pumk-admin.profile'],
+            'user' => ['guard' => 'web', 'dashboard' => 'home', 'profile' => 'public.profile'],
             default => null,
         };
     }

@@ -12,7 +12,7 @@ use Illuminate\View\View;
 
 class PumkMitraPages
 {
-    public function index(Request $request, PumkCollectibilitySummaryService $collectibilitySummary): View
+    public function index(Request $request, PumkCollectibilitySummaryService $collectibilitySummary, string $sourceCategory = 'reguler'): View
     {
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
@@ -24,11 +24,12 @@ class PumkMitraPages
         $statusFilter = $filters['status'] ?? 'aktif';
         $selectedCollectibility = $filters['kolektibilitas'] ?? null;
         $selectedRecap = $selectedCollectibility !== null
-            ? $collectibilitySummary->matchingLoanIdsWithSummary($filters, $selectedCollectibility)
+            ? $collectibilitySummary->matchingLoanIdsWithSummary($filters, $selectedCollectibility, $sourceCategory)
             : null;
         $matchingLoanIds = $selectedRecap['ids'] ?? null;
 
         $mitraQuery = PumkMitra::query()
+            ->where('kategori_binaan', $sourceCategory)
             ->withExists('pinjamanAktif')
             ->with([
                 'wilayah:id,nama',
@@ -85,16 +86,18 @@ class PumkMitraPages
             'sektorList' => PumkSektorUsaha::query()->where('is_active', true)->orderBy('nama')->get(['id', 'nama']),
             'collectibilityOptions' => $this->collectibilityOptions(),
             'statusFilter' => $statusFilter,
+            'sourceCategory' => $sourceCategory,
         ]);
     }
 
-    public function create(): View
+    public function create(string $sourceCategory = 'reguler'): View
     {
-        return view('pumk-admin.mitra.form', $this->formData(new PumkMitra, new PumkPinjaman));
+        return view('pumk-admin.mitra.form', $this->formData(new PumkMitra, new PumkPinjaman, $sourceCategory));
     }
 
-    public function show(Request $request, PumkMitra $mitra, KartuPiutangService $kartuPiutang, PumkLoanSettlementService $settlement): View
+    public function show(Request $request, PumkMitra $mitra, KartuPiutangService $kartuPiutang, PumkLoanSettlementService $settlement, string $sourceCategory = 'reguler'): View
     {
+        abort_unless($mitra->kategori_binaan === $sourceCategory, 404);
         $mitra->load([
             'wilayah:id,nama',
             'sektorUsaha:id,nama',
@@ -122,11 +125,23 @@ class PumkMitraPages
             : null;
         $pinjamanList = $mitra->pinjaman;
 
-        return view('pumk-admin.mitra.show', compact('mitra', 'pinjaman', 'pinjamanList', 'kartu', 'calculation', 'settlementPreview'));
+        $mitraRoutePrefix = $sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri' : 'pumk-admin.mitra';
+        $cardRouteName = $sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.card' : 'pumk-admin.mitra.show';
+        $listRouteName = $sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.index' : 'pumk-admin.umkm-binaan.index';
+        $editRouteName = $sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.edit' : 'pumk-admin.mitra.edit';
+        $installmentStoreRouteName = $sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.installment.store' : 'pumk-admin.mitra.angsuran.store';
+        $installmentUpdateRouteName = $sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.installment.update' : 'pumk-admin.mitra.angsuran.update';
+
+        return view('pumk-admin.mitra.show', compact(
+            'mitra', 'pinjaman', 'pinjamanList', 'kartu', 'calculation', 'settlementPreview',
+            'sourceCategory', 'mitraRoutePrefix', 'cardRouteName', 'listRouteName', 'editRouteName',
+            'installmentStoreRouteName', 'installmentUpdateRouteName',
+        ));
     }
 
-    public function edit(Request $request, PumkMitra $mitra): View
+    public function edit(Request $request, PumkMitra $mitra, string $sourceCategory = 'reguler'): View
     {
+        abort_unless($mitra->kategori_binaan === $sourceCategory, 404);
         $request->validate(['new_loan' => ['prohibited']]);
         $mitra->load([
             'dokumenPendukung',
@@ -139,14 +154,15 @@ class PumkMitraPages
                 ?? $mitra->pinjaman->first());
         abort_if(! $pinjaman, 404, 'Pinjaman tidak ditemukan.');
 
-        return view('pumk-admin.mitra.form', $this->formData($mitra, $pinjaman));
+        return view('pumk-admin.mitra.form', $this->formData($mitra, $pinjaman, $sourceCategory));
     }
 
-    private function formData(PumkMitra $mitra, PumkPinjaman $pinjaman): array
+    private function formData(PumkMitra $mitra, PumkPinjaman $pinjaman, string $sourceCategory): array
     {
         return [
             'mitra' => $mitra,
             'pinjaman' => $pinjaman,
+            'sourceCategory' => $sourceCategory,
             'sektorList' => PumkSektorUsaha::query()->where('is_active', true)->orderBy('nama')->get(['id', 'nama']),
             'documentTypes' => PumkPinjamanDokumen::TYPES,
             'contractDocuments' => $pinjaman->exists
@@ -167,6 +183,7 @@ class PumkMitraPages
             'kurang_lancar' => 'Kurang Lancar',
             'diragukan' => 'Diragukan',
             'macet' => 'Macet',
+            'bermasalah' => 'Bermasalah',
         ];
     }
 }

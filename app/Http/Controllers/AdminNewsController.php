@@ -25,8 +25,10 @@ class AdminNewsController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validatedData($request, true);
-        $imagePath = $request->file('image')->store('news', 'public');
+        $data = $this->validatedData($request);
+        $imagePath = $request->hasFile('image')
+            ? $request->file('image')->store('news', 'public')
+            : null;
 
         try {
             NewsItem::create([
@@ -35,7 +37,9 @@ class AdminNewsController extends Controller
                 'created_by' => $request->user()->id,
             ]);
         } catch (Throwable $exception) {
-            Storage::disk('public')->delete($imagePath);
+            if ($imagePath) {
+                Storage::disk('public')->delete($imagePath);
+            }
             throw $exception;
         }
 
@@ -51,7 +55,7 @@ class AdminNewsController extends Controller
 
     public function update(Request $request, NewsItem $berita): RedirectResponse
     {
-        $data = $this->validatedData($request, false);
+        $data = $this->validatedData($request);
         $newImagePath = $request->hasFile('image')
             ? $request->file('image')->store('news', 'public')
             : null;
@@ -87,19 +91,22 @@ class AdminNewsController extends Controller
         return back()->with('success', 'Berita TJSL INKA berhasil dihapus.');
     }
 
-    private function validatedData(Request $request, bool $imageRequired): array
+    private function validatedData(Request $request): array
     {
         return $request->validate([
             'title' => ['required', 'string', 'max:255'],
+            'caption' => ['required', 'string', 'max:180'],
+            'content' => ['required', 'string'],
             'source' => ['required', 'string', 'max:255'],
             'published_date' => ['required', 'string', 'max:100'],
-            'image' => [$imageRequired ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'status' => ['required', 'in:draft,published'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ]);
     }
 
-    private function deleteUploadedImage(string $path): void
+    private function deleteUploadedImage(?string $path): void
     {
-        if (! str_starts_with($path, 'images/')) {
+        if (filled($path) && ! str_starts_with($path, 'images/')) {
             Storage::disk('public')->delete($path);
         }
     }

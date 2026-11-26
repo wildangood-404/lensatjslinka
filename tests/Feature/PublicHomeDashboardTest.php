@@ -21,7 +21,7 @@ class PublicHomeDashboardTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'admin', 'is_active' => true, 'must_change_password' => false]);
         $destinations = [
-            'home' => 'monitoring.tjsl',
+            'home' => null,
             'monitoring.tjsl' => 'monitoring.tjsl',
             'monitoring.bri' => 'monitoring.bri',
             'monitoring.inka' => 'monitoring.inka',
@@ -109,7 +109,7 @@ class PublicHomeDashboardTest extends TestCase
         $this->createProgram($user, $sosial, 'completed', 'program-tidak-menjadi-sumber-dashboard', 99999, 99999);
         $this->createProgram($user, $sosial, 'pending_fase1', 'program-pending', 99999, 99999);
 
-        $response = $this->actingAs($user, 'web')->get(route('home'));
+        $response = $this->actingAs($user, 'web')->get(route('monitoring.tjsl'));
 
         $response->assertOk()
             ->assertSee('class="tjsl-report-frame"', false)
@@ -222,7 +222,7 @@ class PublicHomeDashboardTest extends TestCase
         $user = User::factory()->create(['role' => 'admin', 'is_active' => true, 'must_change_password' => false]);
         $this->seed(WilayahOperasionalSeeder::class);
 
-        $response = $this->actingAs($user, 'web')->get(route('home'));
+        $response = $this->actingAs($user, 'web')->get(route('monitoring.tjsl'));
 
         $response->assertOk()
             ->assertSee('Kota Madiun')

@@ -22,7 +22,7 @@
             <details class="pumk-card" style="padding:16px;margin-bottom:18px">
                 <summary>Buka Kembali Pinjaman Lama</summary>
                 <p>Gunakan hanya untuk koreksi pinjaman ini. Saldo, nomor pinjaman, dan angsuran lama tetap dipakai. Unggah SPJ cukup melalui Edit Arsip dan Dokumen.</p>
-                <form method="POST" action="{{ route('pumk-admin.mitra.pinjaman.reopen', [$mitra, $pinjaman]) }}">
+                <form method="POST" action="{{ route($mitraRoutePrefix.'.pinjaman.reopen', [$mitra, $pinjaman]) }}">
                     @csrf
                     <label for="reopen_note">Alasan membuka kembali *</label>
                     <textarea id="reopen_note" name="reopen_note" class="pumk-textarea" required minlength="5" maxlength="1000">{{ old('reopen_note') }}</textarea>

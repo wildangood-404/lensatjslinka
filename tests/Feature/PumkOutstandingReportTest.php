@@ -6,6 +6,7 @@ use App\Models\PumkMitra;
 use App\Models\PumkPinjaman;
 use App\Models\PumkSektorUsaha;
 use App\Models\PumkWilayah;
+use App\Services\Pumk\PumkLoanSnapshotService;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -59,10 +60,44 @@ class PumkOutstandingReportTest extends TestCase
             && $total['problem_count'] === 3
             && $total['problem_principal'] === '2240.00'
             && $total['problem_interest'] === '300.00');
-        $response->assertViewHas('qualityRows', fn (array $rows): bool => count($rows) === 4
-            && array_column($rows, 'mitra_count') === [1, 1, 1, 1]);
+        $response->assertViewHas('qualityRows', fn (array $rows): bool => count($rows) === 5
+            && array_column($rows, 'mitra_count') === [1, 1, 1, 1, 0]);
         $response->assertViewHas('qualityTotal', fn (array $total): bool => $total['mitra_count'] === 3
             && $total['principal'] === '2860.00');
+    }
+
+    public function test_bermasalah_is_fifth_quality_bucket_and_counts_as_problematic_for_both_sources(): void
+    {
+        $this->actingAs($this->pumkAdmin(), 'pumk');
+
+        $region = PumkWilayah::create(['nama' => 'Wilayah Bermasalah', 'slug' => 'wilayah-bermasalah']);
+        $sector = PumkSektorUsaha::create(['nama' => 'Sektor Bermasalah', 'slug' => 'sektor-bermasalah']);
+        $regular = $this->mitra('Mitra Bermasalah Reguler', $region, $sector);
+        $bri = $this->mitra('Mitra Bermasalah BRI', $region, $sector, 'bri');
+        $this->problematicLoan($regular);
+        $this->problematicLoan($bri);
+
+        foreach ([
+            'pumk-admin.umkm-binaan.report-outstanding',
+            'pumk-admin.umkm-binaan-bri.report-outstanding',
+        ] as $route) {
+            $this->get(route($route))
+                ->assertOk()
+                ->assertSee('Bermasalah')
+                ->assertSee('quality-badge is-bermasalah', false)
+                ->assertViewHas('qualityRows', fn (array $rows): bool => array_column($rows, 'label') === [
+                    'Lancar', 'Kurang Lancar', 'Diragukan', 'Macet', 'Bermasalah',
+                ] && $rows[4]['mitra_count'] === 1
+                    && $rows[4]['principal'] === '1000.00'
+                    && $rows[4]['interest'] === '100.00')
+                ->assertViewHas('qualityTotal', fn (array $total): bool => $total['mitra_count'] === 1
+                    && $total['principal'] === '1000.00')
+                ->assertViewHas('regionTotal', fn (array $total): bool => $total['problem_count'] === 1
+                    && $total['problem_principal'] === '1000.00'
+                    && $total['problem_interest'] === '100.00')
+                ->assertViewHas('sectorTotal', fn (array $total): bool => $total['problem_count'] === 1
+                    && $total['problem_principal'] === '1000.00');
+        }
     }
 
     public function test_umkm_binaan_list_alias_preserves_existing_mitra_route_and_dashboard_links(): void
@@ -114,10 +149,11 @@ class PumkOutstandingReportTest extends TestCase
         ]);
     }
 
-    private function mitra(string $name, PumkWilayah $wilayah, PumkSektorUsaha $sektor): PumkMitra
+    private function mitra(string $name, PumkWilayah $wilayah, PumkSektorUsaha $sektor, string $category = 'reguler'): PumkMitra
     {
         return PumkMitra::create([
             'nama_mitra' => $name,
+            'kategori_binaan' => $category,
             'wilayah_id' => $wilayah->id,
             'sektor_usaha_id' => $sektor->id,
             'source_key' => (string) Str::uuid(),
@@ -175,6 +211,27 @@ class PumkOutstandingReportTest extends TestCase
             'pokok_masuk' => $paid,
             'bunga_masuk' => '0.00',
             'denda' => '0.00',
+        ]);
+
+        return $loan;
+    }
+
+    private function problematicLoan(PumkMitra $mitra): PumkPinjaman
+    {
+        $loan = PumkPinjaman::create([
+            'mitra_id' => $mitra->id,
+            'source_key' => (string) Str::uuid(),
+            'status' => PumkPinjaman::STATUS_AKTIF,
+            'is_active' => true,
+            'pinjaman_pokok' => '1000.00',
+            'pinjaman_bunga' => '100.00',
+            'kolektibilitas' => 'bermasalah',
+        ]);
+        app(PumkLoanSnapshotService::class)->saveImported($loan, [
+            'sisa_pokok' => '1000.00',
+            'sisa_bunga' => '100.00',
+            'total_sisa' => '1100.00',
+            'kolektibilitas' => 'bermasalah',
         ]);
 
         return $loan;

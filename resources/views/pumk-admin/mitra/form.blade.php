@@ -1,10 +1,18 @@
-<x-layouts.pumk-admin :title="$mitra->exists ? 'Edit UMKM Binaan' : 'Tambah UMKM Binaan'">
+<x-layouts.pumk-admin :title="$mitra->exists ? 'Edit '.($sourceCategory === 'bri' ? 'UMKM Binaan Via BRI' : 'UMKM Binaan') : 'Tambah '.($sourceCategory === 'bri' ? 'UMKM Binaan Via BRI' : 'UMKM Binaan')">
     @include('pumk-admin.partials.module-styles')
 
     @php
         $editing = $mitra->exists;
+        $briMode = $sourceCategory === 'bri';
+        $binaanLabel = $briMode ? 'UMKM Binaan Via BRI' : 'UMKM Binaan';
+        $binaanRoutePrefix = $briMode ? 'pumk-admin.umkm-binaan-bri' : 'pumk-admin.umkm-binaan';
+        $profileRoute = $binaanRoutePrefix.'.show';
+        $cardRoute = $briMode ? 'pumk-admin.umkm-binaan-bri.card' : 'pumk-admin.mitra.show';
+        $listRoute = $binaanRoutePrefix.'.index';
         $archiveEdit = $pinjaman->exists && ($pinjaman->status !== \App\Models\PumkPinjaman::STATUS_AKTIF || ! $pinjaman->is_active);
-        $formAction = $editing ? route('pumk-admin.mitra.update', $mitra) : route('pumk-admin.mitra.store');
+        $formAction = $editing
+            ? route($briMode ? 'pumk-admin.umkm-binaan-bri.update' : 'pumk-admin.mitra.update', $mitra)
+            : route($briMode ? 'pumk-admin.umkm-binaan-bri.store' : 'pumk-admin.mitra.store');
         $dateValue = static fn ($value) => $value ? \Illuminate\Support\Carbon::parse($value)->format('Y-m-d') : '';
         $importActive = session()->has('import_result') || $errors->has('import_file');
         $domicileSame = filter_var(old('alamat_domisili_sama_ktp', $mitra->alamat_domisili_sama_ktp ?? true), FILTER_VALIDATE_BOOLEAN);
@@ -95,7 +103,7 @@
          x-data="{ activeTab: @js($importActive ? 'import' : 'manual'), domisiliSame: @js($domicileSame), usahaSame: @js($businessSame) }">
         <div class="pumk-page-header">
             <div>
-                <h1 class="pumk-page-title">{{ $archiveEdit ? 'Edit Arsip dan Dokumen' : ($editing ? 'Edit UMKM Binaan' : 'Tambah UMKM Binaan') }}</h1>
+                <h1 class="pumk-page-title">{{ $archiveEdit ? 'Edit Arsip dan Dokumen' : ($editing ? 'Edit '.$binaanLabel : 'Tambah '.$binaanLabel) }}</h1>
                 <p class="pumk-page-subtitle">Data tersimpan langsung tanpa alur approval. Kolom bertanda * wajib diisi.</p>
             </div>
         </div>
@@ -144,7 +152,7 @@
                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.12a7.5 7.5 0 0 1 15 0"/></svg>
                                 <strong>Unggah Pasfoto</strong><small>JPG/PNG, maks. 5 MB</small>
                             </span>
-                            <img data-photo-preview @if($mitra->pasfoto) src="{{ route('pumk-admin.umkm-binaan.photo', $mitra) }}" @else hidden @endif alt="Pratinjau pasfoto" class="umkm-photo-preview">
+                            <img data-photo-preview @if($mitra->pasfoto) src="{{ route($binaanRoutePrefix.'.photo', $mitra) }}" @else hidden @endif alt="Pratinjau pasfoto" class="umkm-photo-preview">
                         </label>
                         @error('pasfoto')<span class="pumk-field-error">{{ $message }}</span>@enderror
                     </div>
@@ -416,7 +424,7 @@
                             <label for="kolektibilitas">Kolektibilitas</label>
                             <select id="kolektibilitas" name="kolektibilitas" class="pumk-select" @disabled($archiveEdit)>
                                 <option value="">Pilih kolektibilitas</option>
-                                @foreach(['lancar' => 'Lancar', 'kurang_lancar' => 'Kurang Lancar', 'diragukan' => 'Diragukan', 'macet' => 'Macet'] as $value => $label)
+                                @foreach(['lancar' => 'Lancar', 'kurang_lancar' => 'Kurang Lancar', 'diragukan' => 'Diragukan', 'macet' => 'Macet', 'bermasalah' => 'Bermasalah'] as $value => $label)
                                     <option value="{{ $value }}" @selected(old('kolektibilitas', $pinjaman->kolektibilitas) === $value)>{{ $label }}</option>
                                 @endforeach
                             </select>
@@ -449,8 +457,8 @@
                             <div class="umkm-document-row">
                                 <span class="text-sm font-medium text-slate-700">{{ $supportingDocument->nama_file_asli }}</span>
                                 <span class="flex items-center gap-3">
-                                    <a class="pumk-table-action" href="{{ route('pumk-admin.umkm-binaan.documents.download', [$mitra, $supportingDocument]) }}">Unduh</a>
-                                    <form method="POST" action="{{ route('pumk-admin.umkm-binaan.documents.destroy', [$mitra, $supportingDocument]) }}" onsubmit="return confirm('Hapus dokumen ini?')">
+                                    <a class="pumk-table-action" href="{{ route($binaanRoutePrefix.'.documents.download', [$mitra, $supportingDocument]) }}">Unduh</a>
+                                    <form method="POST" action="{{ route($binaanRoutePrefix.'.documents.destroy', [$mitra, $supportingDocument]) }}" onsubmit="return confirm('Hapus dokumen ini?')">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="pumk-table-action">Hapus</button>
                                     </form>
@@ -552,7 +560,7 @@
             </section>
 
             <div class="umkm-sticky-actions">
-                <a href="{{ request()->boolean('return_to_profile') ? route('pumk-admin.umkm-binaan.show', $mitra) : ($editing ? route('pumk-admin.mitra.show', $mitra) : route('pumk-admin.mitra.index')) }}" class="pumk-secondary-button">Batal</a>
+                <a href="{{ request()->boolean('return_to_profile') ? route($profileRoute, $mitra) : ($editing ? route($cardRoute, $mitra) : route($listRoute)) }}" class="pumk-secondary-button">Batal</a>
                 <button type="submit" class="pumk-primary-button">{{ $editing ? 'Simpan Perubahan' : 'Simpan UMKM Binaan' }}</button>
             </div>
         </form>
@@ -563,7 +571,7 @@
                 <h2 class="pumk-section-title">Import Excel (Input Massal)</h2>
                 <p class="umkm-import-help">Unggah berkas .xlsx atau .csv maksimal 10 MB. Format harus mengikuti urutan header pada template. Data dengan nama usaha duplikat dilewati; baris valid tetap disimpan dan hasil setiap baris ditampilkan setelah proses.</p>
                 <p>
-                    <a href="{{ route('pumk-admin.umkm-binaan.template') }}" class="pumk-secondary-button">Download Template Excel (.xlsx)</a>
+                    <a href="{{ route($binaanRoutePrefix.'.template') }}" class="pumk-secondary-button">Download Template Excel (.xlsx)</a>
                 </p>
                 @if(session('import_result'))
                     @php
@@ -580,7 +588,7 @@
                         @endif
                     </div>
                 @endif
-                <form method="POST" action="{{ route('pumk-admin.umkm-binaan.import') }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ route($binaanRoutePrefix.'.import') }}" enctype="multipart/form-data">
                     @csrf
                     <div class="pumk-field">
                         <label for="import_file">File Excel atau CSV</label>

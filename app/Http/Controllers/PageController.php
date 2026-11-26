@@ -44,6 +44,11 @@ class PageController extends Controller
         return $this->monitoringTjsl();
     }
 
+    public function showcase(): View
+    {
+        return view('pages.home-showcase');
+    }
+
     public function monitoringTjsl(): View
     {
         return app(TjslDashboardPage::class)->monitoringTjsl();
@@ -101,7 +106,7 @@ class PageController extends Controller
 
         return view('pages.program-overview', [
             'programs' => $programs,
-            'news' => NewsItem::query()->orderBy('id')->get(),
+            'news' => NewsItem::query()->published()->orderBy('id')->get(),
             'searchKeyword' => $keyword,
             'monitoringSignature' => app(PublicProgramOverview::class)->monitoringRevision($keyword, $year),
         ]);

@@ -21,6 +21,7 @@ class PumkInstallmentChanges
         PumkPinjaman $pinjaman,
         PiutangCalculator $calculator,
         PumkPaymentProofService $proofs,
+        string $sourceCategory = 'reguler',
     ): RedirectResponse {
         PumkMitraOwnership::loan($mitra, $pinjaman);
         abort_unless($pinjaman->status === PumkPinjaman::STATUS_AKTIF && $pinjaman->is_active, 409, 'Pinjaman yang sudah selesai tidak dapat menerima angsuran baru.');
@@ -44,7 +45,7 @@ class PumkInstallmentChanges
                 $request,
                 $saldoAwal->cutoff_date,
                 $periode,
-                route('pumk-admin.mitra.angsuran.store', [$mitra, $pinjaman]),
+                route($sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.installment.store' : 'pumk-admin.mitra.angsuran.store', [$mitra, $pinjaman]),
                 'POST',
             );
         }
@@ -79,7 +80,7 @@ class PumkInstallmentChanges
         app(PumkActivityLogger::class)->record('create_installment', 'pumk_internal', 'Menambahkan angsuran manual.', $pinjaman, metadata: ['periode' => $periode->format('Y-m')]);
 
         return redirect()
-            ->route('pumk-admin.mitra.show', $mitra)
+            ->route($sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.card' : 'pumk-admin.mitra.show', $mitra)
             ->with('success', 'Angsuran berhasil ditambahkan dan perhitungan kartu piutang telah diperbarui.');
     }
 
@@ -90,6 +91,7 @@ class PumkInstallmentChanges
         PumkAngsuran $angsuran,
         PiutangCalculator $calculator,
         PumkPaymentProofService $proofs,
+        string $sourceCategory = 'reguler',
     ): RedirectResponse {
         PumkMitraOwnership::loan($mitra, $pinjaman);
         abort_unless($pinjaman->status === PumkPinjaman::STATUS_AKTIF && $pinjaman->is_active, 409, 'Angsuran pada pinjaman yang sudah selesai tidak dapat diubah.');
@@ -125,7 +127,7 @@ class PumkInstallmentChanges
                 $request,
                 $saldoAwal->cutoff_date,
                 $periode,
-                route('pumk-admin.mitra.angsuran.update', [$mitra, $pinjaman, $angsuran]),
+                route($sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.installment.update' : 'pumk-admin.mitra.angsuran.update', [$mitra, $pinjaman, $angsuran]),
                 'PATCH',
             );
         }
@@ -161,7 +163,7 @@ class PumkInstallmentChanges
         app(PumkActivityLogger::class)->record('update_installment', 'pumk_internal', 'Memperbarui angsuran manual.', $pinjaman, metadata: ['periode' => $periode->format('Y-m')]);
 
         return redirect()
-            ->route('pumk-admin.mitra.show', $mitra)
+            ->route($sourceCategory === 'bri' ? 'pumk-admin.umkm-binaan-bri.card' : 'pumk-admin.mitra.show', $mitra)
             ->with('success', 'Angsuran berhasil diperbarui dan saldo kartu piutang telah dihitung ulang.');
     }
 

@@ -15,6 +15,7 @@ use App\Http\Controllers\PublicAuthController;
 use App\Http\Controllers\PublicProfileController;
 use App\Http\Controllers\PumkAdminAuthController;
 use App\Http\Controllers\PumkAdminDashboardController;
+use App\Http\Controllers\PumkBriController;
 use App\Http\Controllers\PumkBriPlanningController;
 use App\Http\Controllers\PumkMitraController;
 use App\Http\Controllers\PumkMonitoringDiagnosticsController;
@@ -31,12 +32,13 @@ use App\Http\Controllers\SuperAdminUserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [PublicAuthController::class, 'entry'])->name('entry');
+Route::view('/', 'pages.public-home')->name('entry');
 Route::get('/login', [PublicAuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [PublicAuthController::class, 'login'])->name('login.store');
 
 Route::middleware('auth:web')->group(function () {
-    Route::get('/monitoring', [PageController::class, 'home'])->name('home');
+    Route::get('/home', [PageController::class, 'showcase'])->name('home');
+    Route::get('/monitoring', [PageController::class, 'home'])->name('monitoring.dashboard');
     Route::get('/monitoring/tjsl', [PageController::class, 'monitoringTjsl'])->name('monitoring.tjsl');
     Route::get('/monitoring/pumk-bri', [PageController::class, 'monitoringBri'])->name('monitoring.bri');
     Route::get('/monitoring/pumk-inka', [PageController::class, 'monitoringInka'])->name('monitoring.inka');
@@ -79,6 +81,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/program-tjsl/{program}/cancel', [AdminProgramController::class, 'cancel'])->name('programs.cancel');
         Route::post('/program-tjsl/{program}/tahap-2', [AdminProgramController::class, 'storeTahap2'])->name('programs.tahap2.store');
         Route::post('/program-tjsl/{program}/pengajuan', [AdminProgramController::class, 'updatePengajuan'])->name('programs.pengajuan.update');
+        Route::post('/program-tjsl/{program}/pelaksanaan', [AdminProgramController::class, 'updatePelaksanaan'])->name('programs.pelaksanaan.update');
         Route::post('/program-tjsl/{program}/kasbon', [AdminProgramController::class, 'updateKasbon'])->name('programs.kasbon.update');
         Route::post('/program-tjsl/{program}/laporan-akhir', [AdminProgramController::class, 'storeLaporanAkhir'])->name('programs.laporan-akhir.store');
         Route::get('/program-tjsl/{program}/bast-dokumentasi', [AdminProgramController::class, 'phaseTwo'])->name('programs.phase2');
@@ -134,6 +137,14 @@ Route::prefix('admin-pumk')->name('pumk-admin.')->group(function () {
         Route::get('/umkm-binaan/{mitra}/edit', [PumkMitraController::class, 'edit'])
             ->whereNumber('mitra')
             ->name('umkm-binaan.edit');
+        Route::post('/umkm-binaan/{mitra}/monitoring', [PumkUmkmBinaanController::class, 'storeMonitoring'])
+            ->whereNumber('mitra')
+            ->name('umkm-binaan.monitoring.store');
+        Route::get('/umkm-binaan/{mitra}/monitoring/{monitoring}/dokumentasi/{index}', [PumkUmkmBinaanController::class, 'viewMonitoringDocument'])
+            ->whereNumber('mitra')
+            ->whereNumber('monitoring')
+            ->whereNumber('index')
+            ->name('umkm-binaan.monitoring.document');
         Route::get('/umkm-binaan/{mitra}/foto', [PumkUmkmBinaanController::class, 'photo'])
             ->whereNumber('mitra')
             ->name('umkm-binaan.photo');
@@ -155,6 +166,41 @@ Route::prefix('admin-pumk')->name('pumk-admin.')->group(function () {
         Route::get('/umkm-binaan/{mitra}', [PumkUmkmBinaanController::class, 'show'])
             ->whereNumber('mitra')
             ->name('umkm-binaan.show');
+        Route::prefix('umkm-binaan-bri')->name('umkm-binaan-bri.')->group(function (): void {
+            Route::get('/pumk-bri', [PumkBriController::class, 'index'])->name('pumk-bri.index');
+            Route::post('/pumk-bri/periode', [PumkBriController::class, 'storePeriod'])->name('pumk-bri.period.store');
+            Route::post('/pumk-bri/realisasi', [PumkBriController::class, 'storeRealization'])->name('pumk-bri.realization.store');
+            Route::get('/pumk-bri/realisasi/{realization}/dokumen', [PumkBriController::class, 'viewDocument'])
+                ->whereNumber('realization')->name('pumk-bri.documents.view');
+            Route::get('/pumk-bri/realisasi/{realization}/dokumen/unduh', [PumkBriController::class, 'downloadDocument'])
+                ->whereNumber('realization')->name('pumk-bri.documents.download');
+            Route::get('/report-outstanding', PumkOutstandingReportController::class)->name('report-outstanding');
+            Route::get('/daftar', [PumkMitraController::class, 'index'])->name('index');
+            Route::get('/create', [PumkMitraController::class, 'create'])->name('create');
+            Route::post('/', [PumkMitraController::class, 'store'])->name('store');
+            Route::get('/template.xlsx', [PumkUmkmBinaanImportController::class, 'template'])->name('template');
+            Route::post('/import', [PumkUmkmBinaanImportController::class, 'import'])->name('import');
+            Route::get('/{mitra}/edit', [PumkMitraController::class, 'edit'])->whereNumber('mitra')->name('edit');
+            Route::put('/{mitra}', [PumkMitraController::class, 'update'])->whereNumber('mitra')->name('update');
+            Route::get('/{mitra}/foto', [PumkUmkmBinaanController::class, 'photo'])->whereNumber('mitra')->name('photo');
+            Route::get('/{mitra}/dokumen/{document}/unduh', [PumkUmkmBinaanController::class, 'downloadDocument'])->whereNumber('mitra')->name('documents.download');
+            Route::get('/{mitra}/dokumen/{document}/lihat', [PumkUmkmBinaanController::class, 'viewDocument'])->whereNumber('mitra')->name('documents.view');
+            Route::delete('/{mitra}/dokumen/{document}', [PumkUmkmBinaanController::class, 'destroyDocument'])->whereNumber('mitra')->name('documents.destroy');
+            Route::get('/{mitra}/pinjaman/{pinjaman}/dokumen/{document}/lihat', [PumkMitraController::class, 'viewDocument'])->whereNumber('mitra')->name('dokumen.view');
+            Route::get('/{mitra}/pinjaman/{pinjaman}/dokumen/{document}/unduh', [PumkMitraController::class, 'downloadDocument'])->whereNumber('mitra')->name('dokumen.download');
+            Route::delete('/{mitra}/pinjaman/{pinjaman}/dokumen/{document}', [PumkMitraController::class, 'destroyDocument'])->whereNumber('mitra')->name('dokumen.destroy');
+            Route::post('/{mitra}/pinjaman/{pinjaman}/angsuran', [PumkMitraController::class, 'storeAngsuran'])->name('installment.store');
+            Route::patch('/{mitra}/pinjaman/{pinjaman}/angsuran/{angsuran}', [PumkMitraController::class, 'updateAngsuran'])->name('installment.update');
+            Route::get('/{mitra}/pinjaman/{pinjaman}/angsuran/{angsuran}/bukti/lihat', [PumkMitraController::class, 'viewPaymentProof'])->name('angsuran.bukti.view');
+            Route::get('/{mitra}/pinjaman/{pinjaman}/angsuran/{angsuran}/bukti/unduh', [PumkMitraController::class, 'downloadPaymentProof'])->name('angsuran.bukti.download');
+            Route::delete('/{mitra}/pinjaman/{pinjaman}/angsuran/{angsuran}/bukti', [PumkMitraController::class, 'destroyPaymentProof'])->name('angsuran.bukti.destroy');
+            Route::post('/{mitra}/pinjaman/{pinjaman}/buka-kembali', [PumkMitraController::class, 'reopen'])->name('pinjaman.reopen');
+            Route::post('/{mitra}/pinjaman/{pinjaman}/lunas', [PumkMitraController::class, 'markPaid'])->name('pinjaman.lunas');
+            Route::get('/{mitra}/pinjaman/{pinjaman}/kartu-piutang.xls', [PumkMitraController::class, 'exportExcel'])->name('kartu.excel');
+            Route::get('/{mitra}/pinjaman/{pinjaman}/kartu-piutang.pdf', [PumkMitraController::class, 'exportPdf'])->name('kartu.pdf');
+            Route::get('/{mitra}/kartu-piutang', [PumkMitraController::class, 'show'])->whereNumber('mitra')->name('card');
+            Route::get('/{mitra}', [PumkUmkmBinaanController::class, 'show'])->whereNumber('mitra')->name('show');
+        });
         Route::get('/monitoring/rincian-data', PumkMonitoringDiagnosticsController::class)->name('monitoring.diagnostics');
         Route::get('/profil', [AdminProfileController::class, 'edit'])->name('profile');
         Route::put('/profil', [AdminProfileController::class, 'update'])->name('profile.update');

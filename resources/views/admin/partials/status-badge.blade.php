@@ -47,7 +47,7 @@
         'ditolak' => 'Ditolak',
     ][$visualStatus] ?? ucfirst(str_replace('_', ' ', $visualStatus));
 @endphp
-<span class="submission-status-badge{{ $programCard ? ' submission-status-program-card submission-status-'.$statusColor.' '.$programCardTextClass.' inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold shadow-sm' : ' submission-status-'.$statusColor }}" data-status="{{ $statusValue }}">
+<span class="submission-status-badge{{ $programCard ? ' submission-status-program-card submission-status-'.$statusColor.' '.$programCardTextClass.' inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-xs font-semibold shadow-xs whitespace-nowrap' : ' submission-status-'.$statusColor }}" data-status="{{ $statusValue }}">
     <span>{{ $statusLabel }}</span>
     @switch($visualStatus)
         @case('draft')

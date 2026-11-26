@@ -7,13 +7,16 @@ use App\Models\PumkMitraDokumen;
 use App\Models\PumkMonitoringPosition;
 use App\Models\PumkPinjaman;
 use App\Models\PumkPinjamanDokumen;
+use App\Models\UmkmMonitoring;
 use App\Services\Pumk\PumkActivityLogger;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class PumkUmkmBinaanController extends Controller
 {
@@ -25,8 +28,10 @@ class PumkUmkmBinaanController extends Controller
         'image/webp',
     ];
 
-    public function show(PumkMitra $mitra): View
+    public function show(Request $request, PumkMitra $mitra): View
     {
+        $sourceCategory = $this->sourceCategory($request);
+        abort_unless($mitra->kategori_binaan === $sourceCategory, 404);
         $mitra->load([
             'wilayah:id,nama',
             'sektorUsaha:id,nama',
@@ -49,12 +54,113 @@ class PumkUmkmBinaanController extends Controller
             ->get()
             ->sortByDesc(fn (PumkMonitoringPosition $position) => $position->report?->as_of_date?->toDateString())
             ->values();
+        $monitoringRecords = $mitra->monitorings()
+            ->latest('periode_tahun')
+            ->latest('created_at')
+            ->get();
 
-        return view('pumk-admin.umkm-binaan.show', compact('mitra', 'monitoringHistory'));
+        return view('pumk-admin.umkm-binaan.show', compact('mitra', 'monitoringHistory', 'monitoringRecords', 'sourceCategory'));
+    }
+
+    public function storeMonitoring(
+        Request $request,
+        PumkMitra $mitra,
+        PumkActivityLogger $activity,
+    ): RedirectResponse {
+        abort_unless($mitra->kategori_binaan === 'reguler', 404);
+
+        $validated = $request->validate([
+            'periode_tahun' => ['required', 'integer', 'between:1900,2100'],
+            'jenis_kunjungan' => ['required', 'string', 'in:Kunjungan Rutin,Monitoring Perkembangan Usaha,Pembinaan & Pendampingan,Penagihan & Restrukturisasi,Lainnya'],
+            'jenis_kunjungan_custom' => ['nullable', 'required_if:jenis_kunjungan,Lainnya', 'string', 'max:120'],
+            'tindak_lanjut' => ['required', 'string', 'max:10000'],
+            'keterangan' => ['nullable', 'string', 'max:10000'],
+            'dokumentasi' => ['nullable', 'array'],
+            'dokumentasi.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'],
+        ]);
+
+        $storedDocuments = [];
+        $storedPaths = [];
+        $disk = Storage::disk('local');
+
+        try {
+            foreach ($validated['dokumentasi'] ?? [] as $file) {
+                $path = $file->store("umkm-monitorings/{$mitra->id}", 'local');
+                if (! is_string($path) || $path === '') {
+                    throw new RuntimeException('Berkas dokumentasi monitoring tidak dapat disimpan.');
+                }
+
+                $storedPaths[] = $path;
+                $storedDocuments[] = [
+                    'path' => $path,
+                    'name' => $file->getClientOriginalName(),
+                    'mime' => $file->getMimeType() ?: $file->getClientMimeType(),
+                ];
+            }
+
+            DB::transaction(function () use ($mitra, $validated, $storedDocuments, $activity): void {
+                $jenisKunjungan = $validated['jenis_kunjungan'] === 'Lainnya'
+                    ? trim($validated['jenis_kunjungan_custom'])
+                    : $validated['jenis_kunjungan'];
+
+                $monitoring = $mitra->monitorings()->create([
+                    'periode_tahun' => $validated['periode_tahun'],
+                    'jenis_kunjungan' => $jenisKunjungan,
+                    'tindak_lanjut' => $validated['tindak_lanjut'],
+                    'keterangan' => $validated['keterangan'] ?? null,
+                    'dokumentasi' => $storedDocuments === [] ? null : $storedDocuments,
+                ]);
+
+                $activity->record(
+                    'create_monitoring_visit',
+                    'pumk_internal',
+                    'Menyimpan catatan kunjungan monitoring UMKM binaan.',
+                    $monitoring,
+                    metadata: ['mitra_id' => $mitra->id],
+                );
+            });
+        } catch (Throwable $exception) {
+            foreach ($storedPaths as $path) {
+                if (! $disk->delete($path)) {
+                    throw new RuntimeException('Berkas monitoring gagal dibersihkan setelah penyimpanan dibatalkan.', 0, $exception);
+                }
+            }
+
+            throw $exception;
+        }
+
+        return redirect()
+            ->route('pumk-admin.umkm-binaan.show', ['mitra' => $mitra, 'tab' => 'monitoring'])
+            ->with('success', 'Update monitoring berhasil disimpan.');
+    }
+
+    public function viewMonitoringDocument(
+        PumkMitra $mitra,
+        UmkmMonitoring $monitoring,
+        int $index,
+    ): StreamedResponse {
+        $this->assertMitraCategory($mitra);
+        abort_unless($mitra->kategori_binaan === 'reguler' && $monitoring->mitra_id === $mitra->id, 404);
+
+        $document = $monitoring->dokumentasi[$index] ?? null;
+        abort_unless(is_array($document) && filled($document['path'] ?? null), 404);
+
+        $disk = Storage::disk('local');
+        $path = $document['path'];
+        abort_unless($disk->exists($path), 404);
+        $mime = $disk->mimeType($path) ?: 'application/octet-stream';
+        abort_unless(in_array($mime, self::PREVIEWABLE_MIME_TYPES, true), 415);
+
+        return $disk->response($path, basename($path), [
+            'Content-Type' => $mime,
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store, max-age=0',
+        ], 'inline');
     }
 
     public function photo(PumkMitra $mitra): StreamedResponse
     {
+        $this->assertMitraCategory($mitra);
         $disk = Storage::disk('local');
         abort_unless(filled($mitra->pasfoto) && $disk->exists($mitra->pasfoto), 404);
         $mime = $disk->mimeType($mitra->pasfoto) ?: 'application/octet-stream';
@@ -69,6 +175,7 @@ class PumkUmkmBinaanController extends Controller
 
     public function downloadDocument(PumkMitra $mitra, PumkMitraDokumen $document): StreamedResponse
     {
+        $this->assertMitraCategory($mitra);
         abort_unless($document->mitra_id === $mitra->id, 404);
         $disk = Storage::disk('local');
         abort_unless($disk->exists($document->file_path), 404);
@@ -81,6 +188,7 @@ class PumkUmkmBinaanController extends Controller
 
     public function viewDocument(PumkMitra $mitra, PumkMitraDokumen $document): StreamedResponse
     {
+        $this->assertMitraCategory($mitra);
         abort_unless($document->mitra_id === $mitra->id, 404);
 
         return $this->inlineDocument($document->file_path, $document->nama_file_asli);
@@ -91,6 +199,7 @@ class PumkUmkmBinaanController extends Controller
         PumkPinjaman $pinjaman,
         PumkPinjamanDokumen $document,
     ): StreamedResponse {
+        $this->assertMitraCategory($mitra);
         abort_unless($pinjaman->mitra_id === $mitra->id && $document->pinjaman_id === $pinjaman->id, 404);
         $disk = Storage::disk('local');
         abort_unless($disk->exists($document->file_path), 404);
@@ -106,6 +215,7 @@ class PumkUmkmBinaanController extends Controller
         PumkPinjaman $pinjaman,
         PumkPinjamanDokumen $document,
     ): StreamedResponse {
+        $this->assertMitraCategory($mitra);
         abort_unless($pinjaman->mitra_id === $mitra->id && $document->pinjaman_id === $pinjaman->id, 404);
 
         return $this->inlineDocument($document->file_path, $document->nama_file_asli);
@@ -116,6 +226,7 @@ class PumkUmkmBinaanController extends Controller
         PumkMitraDokumen $document,
         PumkActivityLogger $activity,
     ): RedirectResponse {
+        $this->assertMitraCategory($mitra);
         abort_unless($document->mitra_id === $mitra->id, 404);
         $disk = Storage::disk('local');
         abort_unless($disk->exists($document->file_path), 404);
@@ -143,5 +254,15 @@ class PumkUmkmBinaanController extends Controller
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, no-store, max-age=0',
         ], 'inline');
+    }
+
+    private function sourceCategory(Request $request): string
+    {
+        return $request->routeIs('pumk-admin.umkm-binaan-bri.*') ? 'bri' : 'reguler';
+    }
+
+    private function assertMitraCategory(PumkMitra $mitra): void
+    {
+        abort_unless($mitra->kategori_binaan === $this->sourceCategory(request()), 404);
     }
 }

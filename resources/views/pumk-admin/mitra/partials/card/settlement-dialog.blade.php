@@ -20,7 +20,7 @@
                     @endif
                     @if(! $settlementPreview['eligible'])<p class="receivable-warning">{{ $settlementPreview['message'] }}</p>@endif
                     <p>Setelah ditandai lunas, pinjaman diarsipkan dan angsuran tidak dapat ditambah atau diedit. Saldo sumber dan histori lama tetap tersimpan. Tanggal penutupan mengikuti waktu tindakan, bukan tanggal pembayaran lampau.</p>
-                    <form method="POST" action="{{ route('pumk-admin.mitra.pinjaman.lunas', [$mitra, $pinjaman]) }}">
+                    <form method="POST" action="{{ route($mitraRoutePrefix.'.pinjaman.lunas', [$mitra, $pinjaman]) }}">
                         @csrf
                         <div class="pumk-field"><label for="lunas_note">Catatan pelunasan {{ $settlementPreview['needs_note'] ? '(wajib)' : '(opsional)' }}</label><textarea id="lunas_note" name="lunas_note" class="pumk-textarea" maxlength="1000" @if($settlementPreview['needs_note']) required @endif>{{ old('lunas_note') }}</textarea></div>
                         <div class="installment-dialog-actions"><button type="button" class="pumk-secondary-button" data-close-paid-dialog>Batal</button><button type="submit" class="danger-button" @disabled(! $settlementPreview['eligible'])>Ya, Tandai Lunas</button></div>

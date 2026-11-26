@@ -45,10 +45,10 @@ final class PumkUmkmBinaanImportService
     ) {}
 
     /** @return array{imported:int,duplicate:int,failed:int,rows:list<array{row:int,message:string}>} */
-    public function import(UploadedFile $file): array
+    public function import(UploadedFile $file, string $sourceCategory = 'reguler'): array
     {
         $rows = $this->readRows($file);
-        $names = PumkMitra::query()->pluck('nama_mitra')
+        $names = PumkMitra::query()->where('kategori_binaan', $sourceCategory)->pluck('nama_mitra')
             ->map(fn (string $name): string => mb_strtolower(trim($name)))
             ->flip();
         $result = ['imported' => 0, 'duplicate' => 0, 'failed' => 0, 'rows' => []];
@@ -72,7 +72,7 @@ final class PumkUmkmBinaanImportService
                 'sektor_usaha' => ['nullable', 'string', 'max:255'],
                 'pinjaman_pokok' => ['nullable', 'numeric', 'min:0'],
                 'tahun_pencairan' => ['nullable', 'integer', 'digits:4', 'between:1900,2200'],
-                'kolektibilitas' => ['nullable', 'in:lancar,kurang_lancar,diragukan,macet'],
+                'kolektibilitas' => ['nullable', 'in:lancar,kurang_lancar,diragukan,macet,bermasalah'],
                 'total_sisa' => ['nullable', 'numeric'],
                 'sisa_pokok' => ['nullable', 'numeric'],
                 'sisa_bunga' => ['nullable', 'numeric'],
@@ -87,12 +87,13 @@ final class PumkUmkmBinaanImportService
             }
 
             try {
-                DB::transaction(function () use ($data, $sourceRow, $nameKey): void {
-                    if (PumkMitra::query()->whereRaw('LOWER(nama_mitra) = ?', [$nameKey])->lockForUpdate()->exists()) {
+                DB::transaction(function () use ($data, $sourceRow, $nameKey, $sourceCategory): void {
+                    if (PumkMitra::query()->where('kategori_binaan', $sourceCategory)->whereRaw('LOWER(nama_mitra) = ?', [$nameKey])->lockForUpdate()->exists()) {
                         throw ValidationException::withMessages(['duplicate' => 'Nama UMKM binaan sudah terdaftar; baris dilewati.']);
                     }
 
                     $mitra = PumkMitra::query()->create($this->input->mitraPayload($data) + [
+                        'kategori_binaan' => $sourceCategory,
                         'source_key' => hash('sha256', 'umkm-import|'.auth('pumk')->id().'|'.$sourceRow['row'].'|'.Str::uuid()),
                         'created_by' => auth('pumk')->id(),
                         'is_active' => true,
@@ -232,6 +233,7 @@ final class PumkUmkmBinaanImportService
             'kurang lancar' => 'kurang_lancar',
             'diragukan' => 'diragukan',
             'macet' => 'macet',
+            'bermasalah' => 'bermasalah',
         ]);
         $status = $this->enumValue($values['status'] ?? null, [
             'aktif' => 'aktif',

@@ -1,7 +1,12 @@
-<x-layouts.pumk-admin title="Daftar UMKM Binaan">
+<x-layouts.pumk-admin :title="$sourceCategory === 'bri' ? 'Daftar UMKM Binaan Via BRI' : 'Daftar UMKM Binaan'">
     @include('pumk-admin.partials.module-styles')
 
     @php
+        $briMode = $sourceCategory === 'bri';
+        $binaanLabel = $briMode ? 'UMKM Binaan Via BRI' : 'UMKM Binaan';
+        $binaanRoutePrefix = $briMode ? 'pumk-admin.umkm-binaan-bri' : 'pumk-admin.umkm-binaan';
+        $createRoute = $briMode ? 'pumk-admin.umkm-binaan-bri.create' : 'pumk-admin.mitra.create';
+        $editRoute = $briMode ? 'pumk-admin.umkm-binaan-bri.edit' : 'pumk-admin.mitra.edit';
         $selectedCollectibility = (string) $selectedCollectibility;
         $statusFilter = $statusFilter ?? 'aktif';
         $formatSummaryRupiah = static function (string $amount): string {
@@ -31,17 +36,17 @@
     <div class="pumk-page">
         <div class="pumk-page-header">
             <div>
-                <h1 class="pumk-page-title">Daftar UMKM Binaan</h1>
+                <h1 class="pumk-page-title">Daftar {{ $binaanLabel }}</h1>
                 <p class="pumk-page-subtitle">Cari dan pantau kartu piutang PUMK tanpa menampilkan data identitas sensitif.</p>
             </div>
             <div class="pumk-page-header-actions">
-                <a href="{{ route('pumk-admin.mitra.create') }}" class="pumk-primary-button">+ Tambah UMKM Binaan</a>
+                <a href="{{ route($createRoute) }}" class="pumk-primary-button">+ Tambah {{ $binaanLabel }}</a>
             </div>
         </div>
 
         <nav class="pumk-card" aria-label="Status Mitra" style="display:flex;gap:8px;margin:18px 0;padding:10px;flex-wrap:wrap">
             @foreach(['aktif' => 'Mitra Aktif', 'lunas' => 'Mitra Lunas / Arsip', 'semua' => 'Semua'] as $value => $label)
-                <a href="{{ route('pumk-admin.umkm-binaan.index', ['status' => $value]) }}"
+                <a href="{{ route($binaanRoutePrefix.'.index', ['status' => $value]) }}"
                    class="{{ $statusFilter === $value ? 'pumk-primary-button' : 'pumk-secondary-button' }}">{{ $label }}</a>
             @endforeach
         </nav>
@@ -50,7 +55,7 @@
             <div class="pumk-alert success" role="status">{{ session('success') }}</div>
         @endif
 
-        <form method="GET" action="{{ route('pumk-admin.umkm-binaan.index') }}" class="pumk-card pumk-filter pumk-mitra-filter">
+        <form method="GET" action="{{ route($binaanRoutePrefix.'.index') }}" class="pumk-card pumk-filter pumk-mitra-filter">
             <input type="hidden" name="status" value="{{ $statusFilter }}">
             <div class="pumk-filter-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div class="pumk-field">
@@ -82,7 +87,7 @@
             </div>
             <div class="pumk-filter-actions mt-4 flex items-center justify-end gap-2">
                 <button type="submit" class="pumk-primary-button">Cari</button>
-                <a href="{{ route('pumk-admin.umkm-binaan.index', ['status' => $statusFilter]) }}" class="pumk-secondary-button">Reset</a>
+                <a href="{{ route($binaanRoutePrefix.'.index', ['status' => $statusFilter]) }}" class="pumk-secondary-button">Reset</a>
             </div>
         </form>
 
@@ -120,8 +125,8 @@
                                 {{ $pinjaman && $pinjaman->rekap_balance !== null ? $formatSummaryRupiah((string) $pinjaman->rekap_balance) : '—' }}
                             </td>
                             <td class="actions">
-                                <a href="{{ route('pumk-admin.umkm-binaan.show', $mitra) }}" class="pumk-table-action is-primary">Profil</a>
-                                <a href="{{ route('pumk-admin.mitra.edit', [$mitra, 'pinjaman' => $pinjaman?->id]) }}" class="pumk-table-action">{{ $pinjaman?->status === 'aktif' ? 'Edit' : 'Edit Arsip' }}</a>
+                                <a href="{{ route($binaanRoutePrefix.'.show', $mitra) }}" class="pumk-table-action is-primary">Profil</a>
+                                <a href="{{ route($editRoute, [$mitra, 'pinjaman' => $pinjaman?->id]) }}" class="pumk-table-action">{{ $pinjaman?->status === 'aktif' ? 'Edit' : 'Edit Arsip' }}</a>
                             </td>
                         </tr>
                     @empty

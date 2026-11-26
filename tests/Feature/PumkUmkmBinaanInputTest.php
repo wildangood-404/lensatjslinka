@@ -100,7 +100,7 @@ class PumkUmkmBinaanInputTest extends TestCase
             'Perdagangan',
             '2500000',
             '2025',
-            'Kurang Lancar',
+            'Bermasalah',
             '1500000',
             '1000000',
             '500000',
@@ -117,7 +117,11 @@ class PumkUmkmBinaanInputTest extends TestCase
         $mitra = PumkMitra::query()->where('nama_mitra', 'UMKM Excel')->firstOrFail();
         $this->assertSame('Kabupaten Ngawi', $mitra->kabupaten_kota);
         $this->assertSame('Perdagangan', $mitra->sektor_sumber);
-        $this->assertSame('kurang_lancar', $mitra->pinjaman()->firstOrFail()->kolektibilitas);
+        $this->assertSame('bermasalah', $mitra->pinjaman()->firstOrFail()->kolektibilitas);
+        $this->get(route('pumk-admin.umkm-binaan.index', ['kolektibilitas' => 'bermasalah']))
+            ->assertOk()
+            ->assertSee('UMKM Excel')
+            ->assertSee('value="bermasalah" selected', false);
     }
 
     public function test_manual_create_form_exposes_profile_fields_and_import_tabs(): void
@@ -133,6 +137,7 @@ class PumkUmkmBinaanInputTest extends TestCase
             ->assertSee('Alamat domisili sama dengan alamat KTP')
             ->assertSee('Alamat usaha sama dengan alamat KTP')
             ->assertSee('Download Template Excel (.xlsx)')
+            ->assertSee('Bermasalah')
             ->assertSee('Sisa Pinjaman Total (Pokok &amp; Bunga - otomatis)', false);
     }
 
@@ -170,7 +175,7 @@ class PumkUmkmBinaanInputTest extends TestCase
             'sisa_pokok' => '100000',
             'sisa_bunga' => '25000',
             'total_sisa' => '125000',
-            'kolektibilitas' => 'lancar',
+            'kolektibilitas' => 'bermasalah',
             'status_pinjaman' => 'aktif',
             'dokumen_pendukung' => [
                 UploadedFile::fake()->createWithContent('dokumen-uji.txt', 'dokumen pendukung'),
@@ -189,6 +194,7 @@ class PumkUmkmBinaanInputTest extends TestCase
             'sisa_pokok' => 100000,
             'sisa_bunga' => 25000,
             'total_sisa' => 125000,
+            'kolektibilitas' => 'bermasalah',
         ]);
         $document = $mitra->dokumenPendukung()->firstOrFail();
         Storage::disk('local')->assertExists($document->file_path);
@@ -199,7 +205,12 @@ class PumkUmkmBinaanInputTest extends TestCase
             ->assertOk()
             ->assertSee('UMKM Alamat Lengkap')
             ->assertSee('Pemilik Uji')
-            ->assertSee('Kabupaten Madiun');
+            ->assertSee('Kabupaten Madiun')
+            ->assertSee('Bermasalah')
+            ->assertSee('umkm-status-badge is-critical', false);
+        $this->get(route('pumk-admin.umkm-binaan.index', ['kolektibilitas' => 'bermasalah']))
+            ->assertOk()
+            ->assertSee('UMKM Alamat Lengkap');
         $this->get(route('pumk-admin.mitra.edit', [
             $mitra,
             'pinjaman' => $mitra->pinjaman()->value('id'),

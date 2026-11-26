@@ -68,7 +68,10 @@ class TjslStatusFilterTest extends TestCase
             ->assertSee('text-blue-600', false)
             ->assertSee('text-red-600', false)
             ->assertSee('text-emerald-600', false)
-            ->assertSee('text-slate-700', false);
+            ->assertSee('text-slate-700', false)
+            ->assertSee('bg-white text-amber-600 hover:bg-amber-50 border border-white', false)
+            ->assertSee('bg-white text-emerald-600 hover:bg-emerald-50 border border-white', false)
+            ->assertSee('bg-white text-orange-700 hover:bg-orange-50 border border-white', false);
 
         $this->get(route('admin.programs.index', ['status' => 'menunggu_review_proposal']))
             ->assertOk()->assertSee('Program Menunggu Proposal')->assertSee('Program Menunggu Tahap 1')
@@ -129,8 +132,20 @@ class TjslStatusFilterTest extends TestCase
             ->assertSee('bg-emerald-600', false)
             ->assertSee('bg-red-600', false)
             ->assertSee('submission-status-program-card', false)
+            ->assertSee('flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-xl p-5 sm:p-6', false)
+            ->assertSee('flex-1 min-w-0 space-y-1.5', false)
+            ->assertSee('flex flex-col items-start md:items-end gap-2 shrink-0', false)
+            ->assertSee('min-w-[180px] items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold', false)
+            ->assertSee('text-blue-600 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-xs font-semibold shadow-xs whitespace-nowrap', false)
+            ->assertSee('bg-white text-emerald-600 hover:bg-emerald-50 border border-white', false)
             ->assertSee($programs[1]->updated_at->format('H.i d/m/Y'))
             ->assertSee(route('admin.programs.show', $programs[1]), false);
+        $adminList->assertSee('align-items:flex-end', false);
+        $adminList->assertSeeInOrder([
+            'submission-status-program-card',
+            'Lanjutkan Pengisian',
+            'text-xs text-white/90 font-medium whitespace-nowrap',
+        ]);
 
         $superAdminList = $this->actingAs($this->superAdmin, 'superadmin')->get(route('superadmin.programs.index'));
         $superAdminList->assertOk()

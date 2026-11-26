@@ -40,7 +40,10 @@ class AdminNewsManagementTest extends TestCase
         $this->post(route('admin.news.store'), [
             'title' => 'Berita Baru TJSL',
             'source' => 'INKA',
+            'caption' => 'Ringkasan singkat berita baru untuk publik.',
+            'content' => 'Isi lengkap berita baru untuk publik.',
             'published_date' => '13 Oktober 2026',
+            'status' => 'published',
             'image' => $this->pngUpload('berita-baru.png'),
         ])->assertRedirect(route('admin.news.index'));
 
@@ -59,7 +62,10 @@ class AdminNewsManagementTest extends TestCase
             ->put(route('admin.news.update', $newsItem), [
                 'title' => 'Berita Diperbarui TJSL',
                 'source' => 'Media INKA',
+                'caption' => 'Caption berita yang diperbarui.',
+                'content' => 'Isi berita yang diperbarui.',
                 'published_date' => '14 Oktober 2026',
+                'status' => 'published',
             ])
             ->assertRedirect(route('admin.news.index'));
 
@@ -75,7 +81,7 @@ class AdminNewsManagementTest extends TestCase
         Storage::disk('public')->assertMissing($newsItem->image_path);
     }
 
-    public function test_news_management_is_admin_only_and_new_items_require_images(): void
+    public function test_news_management_is_admin_only_and_images_are_optional(): void
     {
         $superAdmin = User::factory()->create([
             'role' => 'super_admin',
@@ -97,11 +103,18 @@ class AdminNewsManagementTest extends TestCase
 
         $this->actingAs($admin, 'admin')
             ->post(route('admin.news.store'), [
-                'title' => 'Berita Tanpa Gambar',
+                'title' => 'Berita Dengan Ilustrasi Bawaan',
                 'source' => 'INKA',
+                'caption' => 'Berita ini menggunakan gambar ilustrasi bawaan.',
+                'content' => 'Isi berita tanpa gambar yang diunggah.',
                 'published_date' => '13 Oktober 2026',
+                'status' => 'published',
             ])
-            ->assertSessionHasErrors('image');
+            ->assertRedirect(route('admin.news.index'));
+
+        $newsItem = NewsItem::query()->where('title', 'Berita Dengan Ilustrasi Bawaan')->firstOrFail();
+        $this->assertNull($newsItem->image_path);
+        $this->assertStringContainsString('tjsl-placeholder.svg', $newsItem->image_url);
     }
 
     private function pngUpload(string $name): UploadedFile

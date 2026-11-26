@@ -12,6 +12,7 @@ class PumkMitra extends Model
 
     protected $fillable = [
         'nama_mitra',
+        'kategori_binaan',
         'jenis_usaha',
         'sektor_usaha_id',
         'sektor_sumber',
@@ -129,5 +130,10 @@ class PumkMitra extends Model
     public function dokumenPendukung(): HasMany
     {
         return $this->hasMany(PumkMitraDokumen::class, 'mitra_id');
+    }
+
+    public function monitorings(): HasMany
+    {
+        return $this->hasMany(UmkmMonitoring::class, 'mitra_id');
     }
 }

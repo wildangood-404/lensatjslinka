@@ -1,4 +1,4 @@
-<x-layouts.pumk-admin title="Report Outstanding UMKM Binaan">
+<x-layouts.pumk-admin :title="$pageTitle">
     @php
         $formatRupiah = static function (string $amount): string {
             $negative = str_starts_with($amount, '-');
@@ -12,6 +12,7 @@
             'Kurang Lancar' => 'is-kurang-lancar',
             'Diragukan' => 'is-diragukan',
             'Macet' => 'is-macet',
+            'Bermasalah' => 'is-bermasalah',
         ];
     @endphp
 
@@ -34,6 +35,7 @@
         .quality-badge.is-kurang-lancar{background:#fef9c3;color:#854d0e}
         .quality-badge.is-diragukan{background:#ffedd5;color:#9a3412}
         .quality-badge.is-macet{background:#fee2e2;color:#991b1b}
+        .quality-badge.is-bermasalah{border:1px solid #7f1d1d;background:#7f1d1d;color:#fff}
         .outstanding-note{margin-top:16px;color:#64748b;font-size:13px}
         @media(max-width:700px){.outstanding-heading{flex-direction:column}.outstanding-actions{width:100%}.outstanding-actions button{width:100%}}
         @media print{.pumk-header,.pumk-sidebar,.pumk-mobile-toggle,.pumk-overlay,.outstanding-actions{display:none!important}.pumk-main,.pumk-shell.is-collapsed .pumk-main{margin:0;padding:0}.pumk-shell{background:#fff}.pumk-page{max-width:none}.outstanding-section{break-inside:avoid;box-shadow:none}.outstanding-table th,.outstanding-table tfoot td{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
@@ -42,7 +44,7 @@
     <div class="pumk-page">
         <div class="outstanding-heading">
             <div>
-                <h1 class="pumk-page-title">Report Outstanding UMKM Binaan</h1>
+                <h1 class="pumk-page-title">{{ $pageTitle }}</h1>
                 <p class="pumk-page-subtitle">Rekap saldo pokok dan bunga berdasarkan wilayah, sektor usaha, dan kualitas piutang.</p>
             </div>
             <div class="outstanding-actions">

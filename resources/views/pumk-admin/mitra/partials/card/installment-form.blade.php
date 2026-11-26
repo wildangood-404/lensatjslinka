@@ -3,7 +3,7 @@
                 <div class="installment-heading">
                     <div><h2>Tambah Angsuran</h2><p class="pumk-page-subtitle">Pembayaran langsung masuk ke bulan yang sesuai pada kartu.</p></div>
                 </div>
-                <form method="POST" action="{{ route('pumk-admin.mitra.angsuran.store', [$mitra, $pinjaman]) }}" class="installment-form" enctype="multipart/form-data" data-saldo-awal-cutoff="{{ $pinjaman->saldoAwal?->cutoff_date?->format('Y-m') }}">
+                <form method="POST" action="{{ route($installmentStoreRouteName, [$mitra, $pinjaman]) }}" class="installment-form" enctype="multipart/form-data" data-saldo-awal-cutoff="{{ $pinjaman->saldoAwal?->cutoff_date?->format('Y-m') }}">
                     @csrf
                     <input type="hidden" name="hapus_saldo_awal" value="0">
                     <div class="pumk-field"><label for="periode">Periode</label><input id="periode" type="month" name="periode" class="pumk-input" value="{{ old('periode') }}" required><small class="rupiah-help">Tahun lama seperti 2010 atau sebelumnya tetap dapat dipilih.</small></div>

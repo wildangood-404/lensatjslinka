@@ -1,4 +1,4 @@
-<x-layouts.pumk-admin title="Kartu Piutang Mitra">
+<x-layouts.pumk-admin :title="$sourceCategory === 'bri' ? 'Kartu Piutang UMKM Binaan Via BRI' : 'Kartu Piutang Mitra'">
     @include('pumk-admin.partials.module-styles')
 
     @php
@@ -9,6 +9,7 @@
             'kurang_lancar' => 'Kurang Lancar',
             'diragukan' => 'Diragukan',
             'macet' => 'Macet',
+            'bermasalah' => 'Bermasalah',
         ];
         $status = array_key_exists('kolektibilitas', $calculation ?? [])
             ? $calculation['kolektibilitas'] : $pinjaman?->kolektibilitas;

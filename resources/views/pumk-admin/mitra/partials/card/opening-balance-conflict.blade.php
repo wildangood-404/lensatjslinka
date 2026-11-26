@@ -26,7 +26,7 @@
                         </div>
                     @endif
                     <button type="submit" class="pumk-primary-button">Ya, Hapus Saldo Awal &amp; Simpan</button>
-                    <a href="{{ route('pumk-admin.mitra.show', $mitra) }}" class="pumk-secondary-button">Tidak, Batalkan</a>
+                    <a href="{{ route($cardRouteName, $mitra) }}" class="pumk-secondary-button">Tidak, Batalkan</a>
                 </form>
             </section>
         @endif

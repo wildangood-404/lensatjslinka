@@ -21,9 +21,22 @@
             </label>
 
             <label class="block">
-                <span class="mb-2 block font-semibold">Sumber Berita</span>
+                <span class="mb-2 block font-semibold">Kategori / Sumber Berita</span>
                 <input name="source" value="{{ old('source', $newsItem->source) }}" required maxlength="255" class="w-full rounded-lg border px-3 py-2.5" placeholder="Contoh: Kompas">
                 @error('source') <small class="text-red-600">{{ $message }}</small> @enderror
+            </label>
+
+            <label class="block">
+                <span class="mb-2 block font-semibold">Caption Singkat</span>
+                <textarea name="caption" required maxlength="180" rows="3" class="w-full rounded-lg border px-3 py-2.5">{{ old('caption', $newsItem->caption) }}</textarea>
+                <small class="text-slate-500">Ringkasan untuk kartu berita, maksimal 180 karakter.</small>
+                @error('caption') <small class="block text-red-600">{{ $message }}</small> @enderror
+            </label>
+
+            <label class="block">
+                <span class="mb-2 block font-semibold">Isi Berita</span>
+                <textarea name="content" required rows="8" class="w-full rounded-lg border px-3 py-2.5">{{ old('content', $newsItem->content) }}</textarea>
+                @error('content') <small class="text-red-600">{{ $message }}</small> @enderror
             </label>
 
             <label class="block">
@@ -32,13 +45,23 @@
                 @error('published_date') <small class="text-red-600">{{ $message }}</small> @enderror
             </label>
 
+            <label class="block">
+                <span class="mb-2 block font-semibold">Status Publikasi</span>
+                <select name="status" required class="w-full rounded-lg border px-3 py-2.5">
+                    @foreach(['published' => 'Terbit', 'draft' => 'Draft'] as $value => $label)
+                        <option value="{{ $value }}" @selected(old('status', $newsItem->status ?? 'published') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                @error('status') <small class="text-red-600">{{ $message }}</small> @enderror
+            </label>
+
             <div>
                 <span class="mb-2 block font-semibold">Gambar Berita</span>
                 @if ($newsItem->exists)
                     <img src="{{ $newsItem->image_url }}" alt="Gambar berita saat ini" class="mb-3 h-32 w-32 rounded-lg object-cover">
                 @endif
-                <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" @required(! $newsItem->exists) class="block w-full rounded-lg border p-2">
-                <small class="text-slate-500">{{ $newsItem->exists ? 'Opsional jika gambar tidak ingin diganti.' : 'Wajib diisi.' }} JPG, PNG, atau WEBP; maksimal 10 MB.</small>
+                <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" class="block w-full rounded-lg border p-2">
+                <small class="text-slate-500">Opsional. Jika kosong, halaman Home menggunakan ilustrasi TJSL INKA. JPG, PNG, atau WEBP; maksimal 10 MB.</small>
                 @error('image') <small class="block text-red-600">{{ $message }}</small> @enderror
             </div>
 
