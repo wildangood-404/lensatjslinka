@@ -3,14 +3,41 @@
 namespace App\Http\Controllers;
 
 use App\Models\PumkPinjaman;
+use App\Models\PumkBriSnapshotBulanan;
 use App\Services\Pumk\PiutangCalculator;
 use App\Services\Pumk\PumkCollectibilitySummaryService;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PumkOutstandingReportController extends Controller
 {
+    private const MONTHS = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+    ];
+
+    private const BRI_QUALITY_CATEGORIES = [
+        'lancar' => 'Lancar',
+        'kurang_lancar' => 'Kurang Lancar',
+        'diragukan' => 'Diragukan',
+        'macet' => 'Macet',
+    ];
+
+    private const QUALITY_SQL = "CASE UPPER(TRIM(COALESCE(NULLIF(TRIM(kolektibilitas_bumn), ''), NULLIF(TRIM(kolektibilitas_label), ''), kolektibilitas_kode)))
+        WHEN 'L' THEN 'lancar' WHEN 'LANCAR' THEN 'lancar'
+        WHEN 'KL' THEN 'kurang_lancar' WHEN 'KURANG LANCAR' THEN 'kurang_lancar'
+        WHEN 'D' THEN 'diragukan' WHEN 'DIRAGUKAN' THEN 'diragukan'
+        WHEN 'M' THEN 'macet' WHEN 'MACET' THEN 'macet'
+        ELSE NULL END";
+
+    private const REALIZATION_SUM_SQL = 'COALESCE(SUM(COALESCE(jumlah_realisasi, pinjaman_sumber, 0)), 0)';
+
+    private const OUTSTANDING_SUM_SQL = 'COALESCE(SUM(COALESCE(outstanding, saldo_piutang, 0)), 0)';
+
     private const QUALITY_CATEGORIES = [
         'lancar' => 'Lancar',
         'kurang_lancar' => 'Kurang Lancar',
@@ -27,6 +54,10 @@ class PumkOutstandingReportController extends Controller
         $pageTitle = $sourceCategory === 'bri'
             ? 'Report Outstanding UMKM Binaan Via BRI'
             : 'Report Outstanding UMKM Binaan';
+        if ($sourceCategory === 'bri') {
+            return $this->briSnapshotReport($request, $pageTitle);
+        }
+
         $regions = [];
         $sectors = [];
         $totals = $this->emptyGroup('Total');
@@ -100,6 +131,115 @@ class PumkOutstandingReportController extends Controller
             'qualityTotal' => $this->presentAmounts($qualityTotals, 'Total'),
             'unratedLoans' => $unratedLoans,
         ]);
+    }
+
+    private function briSnapshotReport(Request $request, string $pageTitle): View
+    {
+        $filters = $request->validate([
+            'bulan' => ['nullable', 'integer', 'between:1,12'],
+            'tahun' => ['nullable', 'integer', 'between:1900,2100'],
+        ]);
+        if (array_key_exists('bulan', $filters) xor array_key_exists('tahun', $filters)) {
+            throw ValidationException::withMessages([
+                'bulan' => 'Pilih bulan dan tahun laporan secara bersamaan.',
+            ]);
+        }
+
+        $periods = PumkBriSnapshotBulanan::query()
+            ->select(['tahun', 'bulan'])
+            ->distinct()
+            ->orderByDesc('tahun')
+            ->orderByDesc('bulan')
+            ->get();
+        $latestPeriod = $periods->first();
+        $selectedYear = (int) ($filters['tahun'] ?? $latestPeriod?->tahun ?? now()->year);
+        $selectedMonth = (int) ($filters['bulan'] ?? $latestPeriod?->bulan ?? now()->month);
+        $snapshotScope = static fn (): Builder => PumkBriSnapshotBulanan::query()
+            ->where('tahun', $selectedYear)
+            ->where('bulan', $selectedMonth);
+
+        $regionExpression = "COALESCE(NULLIF(TRIM(bri_unit), ''), NULLIF(TRIM(kabupaten_kota), ''), NULLIF(TRIM(wilayah_sumber), ''), NULLIF(TRIM(provinsi), ''), 'Wilayah tidak diketahui')";
+        $sectorExpression = "COALESCE(NULLIF(TRIM(sektor_ekonomi_bumn), ''), 'Sektor tidak diketahui')";
+        $regionRows = $this->briSnapshotGroups($snapshotScope, $regionExpression);
+        $sectorRows = $this->briSnapshotGroups($snapshotScope, $sectorExpression);
+
+        $qualityGroups = $snapshotScope()
+            ->selectRaw(self::QUALITY_SQL.' as quality')
+            ->selectRaw('COUNT(DISTINCT mitra_id) as mitra_count')
+            ->selectRaw(self::REALIZATION_SUM_SQL.' as realization')
+            ->selectRaw(self::OUTSTANDING_SUM_SQL.' as outstanding')
+            ->whereRaw('('.self::QUALITY_SQL.') IS NOT NULL')
+            ->groupByRaw(self::QUALITY_SQL)
+            ->get()
+            ->keyBy('quality');
+        $qualityRows = [];
+        foreach (self::BRI_QUALITY_CATEGORIES as $category => $label) {
+            $aggregate = $qualityGroups->get($category);
+            $qualityRows[] = [
+                'label' => $label,
+                'mitra_count' => (int) ($aggregate->mitra_count ?? 0),
+                'realization' => $this->decimalAmount($aggregate->realization ?? '0'),
+                'outstanding' => $this->decimalAmount($aggregate->outstanding ?? '0'),
+            ];
+        }
+
+        $years = $periods->pluck('tahun')->map(fn ($year): int => (int) $year)->unique()->values();
+        if (! $years->contains($selectedYear)) {
+            $years->push($selectedYear);
+        }
+
+        return view('pumk-admin.bri.report-outstanding', [
+            'pageTitle' => $pageTitle,
+            'periods' => $periods,
+            'months' => self::MONTHS,
+            'years' => $years->sortDesc()->values(),
+            'selectedMonth' => $selectedMonth,
+            'selectedYear' => $selectedYear,
+            'regionRows' => $regionRows,
+            'regionTotal' => ['label' => 'Total', ...$this->totalBriRows($regionRows)],
+            'sectorRows' => $sectorRows,
+            'sectorTotal' => ['label' => 'Total', ...$this->totalBriRows($sectorRows)],
+            'qualityRows' => $qualityRows,
+            'qualityTotal' => ['label' => 'Total', ...$this->totalBriRows($qualityRows)],
+        ]);
+    }
+
+    /** @return list<array{label:string,mitra_count:int,realization:string,outstanding:string}> */
+    private function briSnapshotGroups(Closure $snapshotScope, string $groupExpression): array
+    {
+        return $snapshotScope()
+            ->selectRaw($groupExpression.' as label')
+            ->selectRaw('COUNT(DISTINCT mitra_id) as mitra_count')
+            ->selectRaw(self::REALIZATION_SUM_SQL.' as realization')
+            ->selectRaw(self::OUTSTANDING_SUM_SQL.' as outstanding')
+            ->groupByRaw($groupExpression)
+            ->orderBy('label')
+            ->get()
+            ->map(fn ($row): array => [
+                'label' => (string) $row->label,
+                'mitra_count' => (int) $row->mitra_count,
+                'realization' => $this->decimalAmount($row->realization),
+                'outstanding' => $this->decimalAmount($row->outstanding),
+            ])
+            ->all();
+    }
+
+    /**
+     * @param  list<array{label:string,mitra_count:int,realization:string,outstanding:string}>  $rows
+     * @return array{mitra_count:int,realization:string,outstanding:string}
+     */
+    private function totalBriRows(array $rows): array
+    {
+        return array_reduce($rows, static fn (array $total, array $row): array => [
+            'mitra_count' => $total['mitra_count'] + $row['mitra_count'],
+            'realization' => bcadd($total['realization'], $row['realization'], 2),
+            'outstanding' => bcadd($total['outstanding'], $row['outstanding'], 2),
+        ], ['mitra_count' => 0, 'realization' => '0.00', 'outstanding' => '0.00']);
+    }
+
+    private function decimalAmount(mixed $amount): string
+    {
+        return bcadd((string) ($amount ?? '0'), '0', 2);
     }
 
     /** @return array<string, mixed> */

@@ -16,17 +16,32 @@ class PublicAuthenticationTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('Portal Informasi TJSL &amp; PUMK', false)
-            ->assertSee('Masuk / Login')
+            ->assertSee('Login')
+            ->assertSee('images/LOGO TJSL.png')
+            ->assertSee('name="remember"', false)
             ->assertSee('id="home-showcase"', false);
         $this->get('/teras-tjsl')->assertRedirect(route('login'));
         $this->get('/profil')->assertRedirect(route('login'));
 
         $this->get(route('login'))
+            ->assertRedirect(route('entry', ['login' => 1]));
+        $this->get(route('entry', ['login' => 1]))
             ->assertOk()
-            ->assertSee('class="public-login-card"', false)
-            ->assertSee('data-password-toggle', false)
-            ->assertSee('videos/waterfall-bg.mp4')
+            ->assertSee('x-data="{ loginOpen: true }"', false)
             ->assertSee('action="'.route('login.store').'"', false);
+    }
+
+    public function test_failed_login_returns_to_home_with_the_login_modal_open(): void
+    {
+        $this->followingRedirects()
+            ->from(route('entry'))
+            ->post(route('login.store'), [
+                'username' => 'unknown-user',
+                'password' => 'wrong-password',
+            ])
+            ->assertOk()
+            ->assertSee('x-data="{ loginOpen: true }"', false)
+            ->assertSee('Username atau password tidak sesuai.');
     }
 
     public function test_one_login_opens_admin_dashboard_and_monitoring_with_the_same_account(): void

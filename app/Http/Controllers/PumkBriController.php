@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PumkBriAnnualFundSummary;
 use App\Models\PumkBriPeriod;
 use App\Models\PumkBriRealization;
 use App\Services\Pumk\PumkActivityLogger;
@@ -31,6 +32,9 @@ class PumkBriController extends Controller
             ->with('realisasi')
             ->orderByDesc('periode_tahun')
             ->get();
+        $annualFundSummaries = PumkBriAnnualFundSummary::query()
+            ->orderByDesc('tahun')
+            ->get();
         $totalBudget = $periods->reduce(
             fn (string $sum, PumkBriPeriod $period): string => bcadd($sum, (string) $period->anggaran_rka, 0),
             '0',
@@ -42,6 +46,7 @@ class PumkBriController extends Controller
 
         return view('pumk-admin.bri.index', [
             'periods' => $periods,
+            'annualFundSummaries' => $annualFundSummaries,
             'totalBudget' => $totalBudget,
             'totalRealization' => $totalRealization,
             'defaultYear' => now()->year,
@@ -130,6 +135,48 @@ class PumkBriController extends Controller
 
         return redirect()->route('pumk-admin.umkm-binaan-bri.pumk-bri.index')
             ->with('success', 'Realisasi PUMK BRI berhasil ditambahkan.');
+    }
+
+    public function storeAnnualFundSummary(Request $request, PumkActivityLogger $activity): RedirectResponse
+    {
+        $data = $request->validate([
+            'tahun' => ['required', 'integer', 'digits:4', 'between:1900,2100'],
+            'total_dana_ditransfer' => ['required', 'string', 'max:80'],
+            'angsuran_pokok' => ['required', 'string', 'max:80'],
+            'jasmin' => ['required', 'string', 'max:80'],
+            'penyaluran' => ['required', 'string', 'max:80'],
+            'os' => ['required', 'string', 'max:80'],
+        ]);
+
+        $amounts = [];
+        foreach (['total_dana_ditransfer', 'angsuran_pokok', 'jasmin', 'penyaluran', 'os'] as $field) {
+            $amounts[$field] = $this->rupiah($data[$field], $field);
+        }
+
+        $availableFunds = bcadd(
+            bcadd($amounts['total_dana_ditransfer'], $amounts['angsuran_pokok'], 0),
+            $amounts['jasmin'],
+            0,
+        );
+        $usedFunds = bcadd($amounts['penyaluran'], $amounts['os'], 0);
+        $amounts['sisa_dana_akhir'] = bcsub($availableFunds, $usedFunds, 0);
+        $year = (int) $data['tahun'];
+
+        $summary = DB::transaction(fn (): PumkBriAnnualFundSummary => PumkBriAnnualFundSummary::query()->updateOrCreate(
+            ['tahun' => $year],
+            $amounts,
+        ));
+
+        $activity->record(
+            $summary->wasRecentlyCreated ? 'create_bri_annual_fund_summary' : 'update_bri_annual_fund_summary',
+            'pumk_bri',
+            'Menyimpan perhitungan dana tahunan PUMK BRI.',
+            $summary,
+            metadata: ['tahun' => $year],
+        );
+
+        return redirect()->route('pumk-admin.umkm-binaan-bri.pumk-bri.index')
+            ->with('success', "Perhitungan dana tahunan {$year} berhasil disimpan.");
     }
 
     public function viewDocument(PumkBriRealization $realization): StreamedResponse

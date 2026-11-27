@@ -25,8 +25,8 @@
     [data-language-menu] [data-language-option]{display:flex;width:100%;align-items:center;justify-content:space-between;padding:16px;border:0;background:#fff;font-size:17px;text-align:left;cursor:pointer}
     [data-language-menu] [data-language-option]:hover{background:#f1f5f9}
     [data-language-check].invisible{visibility:hidden}
-    .navbar-brand-group{display:flex;align-items:center;gap:14px}
-    .navbar-corporate-logo{display:block;height:40px;width:auto;object-fit:contain}
+    .navbar-brand-group{display:flex;align-items:center}
+    .navbar-app-logo{display:block;height:36px;width:auto;max-width:180px;object-fit:contain}
     .navbar-disclosure{position:relative;display:flex;height:100%;align-items:center}
     .navbar-disclosure-button{display:inline-flex;min-height:44px;align-items:center;gap:5px;border:0;background:transparent;padding:0;font-family:inherit;cursor:pointer}
     .navbar-disclosure-button svg,.mobile-monitoring-button svg{width:14px;height:14px;transition:transform .15s}
@@ -43,23 +43,17 @@
     [data-mobile-menu]{max-height:calc(100dvh - 80px);overflow-y:auto}
 
     @media(max-width:640px){
-        .navbar-brand-group{gap:10px}
-        .navbar-corporate-logo{height:30px}
+        .navbar-app-logo{height:32px;max-width:150px}
     }
 </style>
 
 <header class="sticky top-0 z-50 bg-white shadow-sm">
     <nav class="container-site flex h-20 items-center justify-between" aria-label="Navigasi utama">
-        <a href="{{ route('home') }}" class="navbar-brand-group">
+        <a href="{{ route('home') }}" class="navbar-brand-group" aria-label="LENSA TJSL INKA">
             <img
-                src="{{ asset('images/logo/danantara.png') }}"
-                alt="Danantara Indonesia"
-                class="navbar-corporate-logo"
-            >
-            <img
-                src="{{ asset('images/logo/inka.png') }}"
-                alt="PT Industri Kereta Api (Persero)"
-                class="navbar-corporate-logo"
+                src="{{ asset('images/LOGO TJSL.png') }}"
+                alt="TJSL INKA"
+                class="navbar-app-logo"
             >
         </a>
 

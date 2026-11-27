@@ -19,7 +19,7 @@ class HomeShowcaseTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guest_home_and_each_role_home_share_published_news_and_showcase_controls(): void
+    public function test_guest_home_is_news_only_and_role_homes_keep_showcase_charts(): void
     {
         NewsItem::query()->create([
             'title' => 'Berita Publik Home',
@@ -41,15 +41,25 @@ class HomeShowcaseTest extends TestCase
         $this->get(route('entry'))
             ->assertOk()
             ->assertSee('Portal Informasi TJSL &amp; PUMK', false)
-            ->assertSee('Masuk / Login')
+            ->assertSee('Login')
+            ->assertSee('images/LOGO TJSL.png')
+            ->assertSee('images/logo/inka-footer-white.png')
+            ->assertSee('RESOURCES')
+            ->assertSee('CONTACT')
+            ->assertSee('(+62) 811-310-8585')
+            ->assertSee('tjsl@inka.co.id')
+            ->assertSee('@tjsl.inka')
+            ->assertSee('href="'.route('entry').'"', false)
+            ->assertSee('href="'.route('teras').'"', false)
+            ->assertSee('href="'.route('program.overview').'"', false)
             ->assertSee('id="home-showcase"', false)
             ->assertSee('Berita Publik Home')
             ->assertDontSee('Draft Rahasia')
             ->assertSee('News &amp; Kegiatan TJSL', false)
-            ->assertSee('Grafik &amp; Capaian', false)
-            ->assertSee('data-home-chart="program-pillars"', false)
-            ->assertSee('data-home-chart="regular-quality"', false)
-            ->assertSee('data-home-chart="bri-periods"', false);
+            ->assertSee('Kabar terbaru')
+            ->assertDontSee('Grafik &amp; Capaian', false)
+            ->assertDontSee('role="tablist"', false)
+            ->assertDontSee('data-home-chart=', false);
 
         $roleHomes = [
             ['admin.home', 'admin'],
@@ -75,9 +85,12 @@ class HomeShowcaseTest extends TestCase
             $this->actingAs($user, $guard)
                 ->get(route($route))
                 ->assertOk()
+                ->assertSee('images/LOGO TJSL.png')
                 ->assertSee('id="home-showcase"', false)
                 ->assertSee('Berita Publik Home')
-                ->assertDontSee('Draft Rahasia');
+                ->assertDontSee('Draft Rahasia')
+                ->assertSee('Grafik &amp; Capaian', false)
+                ->assertSee('data-home-chart="program-pillars"', false);
         }
     }
 

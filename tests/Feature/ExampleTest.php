@@ -20,9 +20,9 @@ class ExampleTest extends TestCase
         $user = User::factory()->create(['role' => 'admin', 'is_active' => true, 'must_change_password' => false]);
         $pillar = Pillar::create(['name' => 'Sosial', 'slug' => 'sosial', 'color_hex' => '#2563eb']);
         Program::create(['slug' => 'program-jaminan-sosial-pekerja-rentan', 'pillar_id' => $pillar->id, 'nama_program' => 'Program Jaminan Sosial Pekerja Rentan', 'deskripsi_program' => 'Deskripsi', 'sasaran_program' => 'Sasaran', 'lokasi_program' => 'Madiun', 'mitra_program' => 'Mitra', 'rencana_anggaran' => 100, 'realisasi_anggaran' => 50, 'tujuan_program' => 'Tujuan', 'status' => 'completed', 'created_by' => $user->id]);
-        $this->get('/login')->assertOk()->assertSee('USERNAME');
+        $this->get('/login')->assertRedirect(route('entry', ['login' => 1]));
         $this->actingAs($user, 'web');
-        $this->get('/')->assertOk()->assertSee('Masuk / Login');
+        $this->get('/')->assertOk()->assertSee('Login');
         $this->get(route('home'))->assertOk()
             ->assertSee('Portal Informasi TJSL &amp; PUMK PT INKA (Persero)', false)
             ->assertSee('News &amp; Kegiatan TJSL', false)

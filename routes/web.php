@@ -170,16 +170,20 @@ Route::prefix('admin-pumk')->name('pumk-admin.')->group(function () {
             Route::get('/pumk-bri', [PumkBriController::class, 'index'])->name('pumk-bri.index');
             Route::post('/pumk-bri/periode', [PumkBriController::class, 'storePeriod'])->name('pumk-bri.period.store');
             Route::post('/pumk-bri/realisasi', [PumkBriController::class, 'storeRealization'])->name('pumk-bri.realization.store');
+            Route::post('/pumk-bri/perhitungan-dana', [PumkBriController::class, 'storeAnnualFundSummary'])
+                ->name('pumk-bri.annual-fund.store');
             Route::get('/pumk-bri/realisasi/{realization}/dokumen', [PumkBriController::class, 'viewDocument'])
                 ->whereNumber('realization')->name('pumk-bri.documents.view');
             Route::get('/pumk-bri/realisasi/{realization}/dokumen/unduh', [PumkBriController::class, 'downloadDocument'])
                 ->whereNumber('realization')->name('pumk-bri.documents.download');
             Route::get('/report-outstanding', PumkOutstandingReportController::class)->name('report-outstanding');
-            Route::get('/daftar', [PumkMitraController::class, 'index'])->name('index');
-            Route::get('/create', [PumkMitraController::class, 'create'])->name('create');
+            Route::get('/daftar', [\App\Http\Controllers\PumkBriMonthlySnapshotController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\PumkBriMonthlySnapshotController::class, 'create'])->name('create');
             Route::post('/', [PumkMitraController::class, 'store'])->name('store');
-            Route::get('/template.xlsx', [PumkUmkmBinaanImportController::class, 'template'])->name('template');
-            Route::post('/import', [PumkUmkmBinaanImportController::class, 'import'])->name('import');
+            Route::get('/template.xlsx', [\App\Http\Controllers\PumkBriMonthlySnapshotController::class, 'template'])->name('template');
+            Route::post('/import', [\App\Http\Controllers\PumkBriMonthlySnapshotController::class, 'store'])->name('import');
+            Route::get('/profil/{mitra}', [\App\Http\Controllers\PumkBriMonthlySnapshotController::class, 'show'])
+                ->whereNumber('mitra')->name('snapshot.show');
             Route::get('/{mitra}/edit', [PumkMitraController::class, 'edit'])->whereNumber('mitra')->name('edit');
             Route::put('/{mitra}', [PumkMitraController::class, 'update'])->whereNumber('mitra')->name('update');
             Route::get('/{mitra}/foto', [PumkUmkmBinaanController::class, 'photo'])->whereNumber('mitra')->name('photo');

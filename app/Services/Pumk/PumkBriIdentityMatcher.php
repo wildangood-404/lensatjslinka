@@ -93,6 +93,12 @@ class PumkBriIdentityMatcher
             return 'unrelated';
         }
 
+        $sourceUnit = $this->normalized($source['kode_unit'] ?? null);
+        $profileUnit = $this->normalized($profile['kode_unit'] ?? null);
+        if ($sourceUnit !== null && $profileUnit !== null && $sourceUnit !== $profileUnit) {
+            return 'unrelated';
+        }
+
         $same = [];
         $different = [];
         foreach (['wilayah', 'sektor_usaha', 'pinjaman', 'tenor_raw'] as $field) {
@@ -142,6 +148,7 @@ class PumkBriIdentityMatcher
             'sektor_usaha' => $snapshot->sektor_usaha_sumber,
             'pinjaman' => $snapshot->pinjaman_sumber,
             'tenor_raw' => $snapshot->tenor_sumber,
+            'kode_unit' => $snapshot->kode_unit,
         ];
     }
 

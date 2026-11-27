@@ -30,6 +30,23 @@ class PumkBriSnapshotBulanan extends Model
         'tanggal_jatuh_tempo_sumber',
         'profil_sumber_terverifikasi',
         'source_payload',
+        'kode_unit',
+        'bri_unit',
+        'nama_mitra_binaan',
+        'alamat',
+        'provinsi',
+        'kabupaten_kota',
+        'sektor_ekonomi_bumn',
+        'jangka_waktu',
+        'tanggal_realisasi',
+        'tanggal_jatuh_tempo',
+        'jumlah_realisasi',
+        'outstanding',
+        'kolektibilitas_bumn',
+        'tanggal_lunas',
+        'jenis_usaha',
+        'accrued_interest',
+        'angsuran_bunga_diterima_giro',
     ];
 
     protected function casts(): array
@@ -45,6 +62,13 @@ class PumkBriSnapshotBulanan extends Model
             'tanggal_jatuh_tempo_sumber' => 'date',
             'profil_sumber_terverifikasi' => 'boolean',
             'source_payload' => 'array',
+            'tanggal_realisasi' => 'date',
+            'tanggal_jatuh_tempo' => 'date',
+            'tanggal_lunas' => 'date',
+            'jumlah_realisasi' => 'decimal:2',
+            'outstanding' => 'decimal:2',
+            'accrued_interest' => 'decimal:2',
+            'angsuran_bunga_diterima_giro' => 'decimal:2',
         ];
     }
 

@@ -4,6 +4,7 @@
     x-data="homeShowcase($el)"
     @keydown.escape.window="closeNews()"
 >
+    @php($showCharts = $showCharts ?? true)
     <style>[x-cloak]{display:none!important}.home-showcase{font-family:Poppins,sans-serif}</style>
     <script type="application/json" data-home-showcase-data>{!! json_encode($homeShowcase, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}</script>
 
@@ -13,16 +14,20 @@
             <h1 class="text-3xl font-bold leading-tight tracking-tight text-slate-950 sm:text-4xl">Portal Informasi TJSL &amp; PUMK PT INKA (Persero)</h1>
             <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">Ikuti kabar kegiatan, program pemberdayaan, dan capaian Tanggung Jawab Sosial dan Lingkungan PT INKA (Persero).</p>
         </div>
-        <div class="inline-flex max-w-full items-center gap-1 rounded-2xl border border-slate-200/80 bg-slate-100 p-1.5 shadow-sm" role="tablist" aria-label="Pilih tampilan Home">
-            <button type="button" role="tab" @click="setMode('news')" :aria-selected="mode === 'news'" :class="mode === 'news' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'" class="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl px-3.5 text-sm font-semibold transition sm:px-4">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 4.75h14A1.25 1.25 0 0 1 20.25 6v14H5A1.25 1.25 0 0 1 3.75 18.75V6A1.25 1.25 0 0 1 5 4.75ZM7 8h10M7 11h10M7 14h6"/></svg>
-                <span>News &amp; Kegiatan TJSL</span>
-            </button>
-            <button type="button" role="tab" @click="setMode('charts')" :aria-selected="mode === 'charts'" :class="mode === 'charts' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'" class="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl px-3.5 text-sm font-semibold transition sm:px-4">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.25V12h4v7.25h-4Zm5.5 0V5h4v14.25h-4Zm5.5 0v-9h4v9h-4Z"/></svg>
-                <span>Grafik &amp; Capaian</span>
-            </button>
-        </div>
+        @if ($showCharts)
+            <div class="inline-flex max-w-full items-center gap-1 rounded-2xl border border-slate-200/80 bg-slate-100 p-1.5 shadow-sm" role="tablist" aria-label="Pilih tampilan Home">
+                <button type="button" role="tab" @click="setMode('news')" :aria-selected="mode === 'news'" :class="mode === 'news' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'" class="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl px-3.5 text-sm font-semibold transition sm:px-4">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 4.75h14A1.25 1.25 0 0 1 20.25 6v14H5A1.25 1.25 0 0 1 3.75 18.75V6A1.25 1.25 0 0 1 5 4.75ZM7 8h10M7 11h10M7 14h6"/></svg>
+                    <span>News &amp; Kegiatan TJSL</span>
+                </button>
+                <button type="button" role="tab" @click="setMode('charts')" :aria-selected="mode === 'charts'" :class="mode === 'charts' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'" class="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl px-3.5 text-sm font-semibold transition sm:px-4">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.25V12h4v7.25h-4Zm5.5 0V5h4v14.25h-4Zm5.5 0v-9h4v9h-4Z"/></svg>
+                    <span>Grafik &amp; Capaian</span>
+                </button>
+            </div>
+        @else
+            <p class="text-sm font-bold text-blue-700">News &amp; Kegiatan TJSL</p>
+        @endif
     </div>
 
     <div x-show="mode === 'news'" x-transition.opacity>
@@ -89,6 +94,7 @@
         </div>
     </div>
 
+    @if ($showCharts)
     <div x-show="mode === 'charts'" x-transition.opacity>
         <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div class="flex max-w-full flex-wrap gap-2" role="tablist" aria-label="Kategori grafik">
@@ -145,6 +151,7 @@
             </section>
         </template>
     </div>
+    @endif
 
     <div x-show="selectedNews" x-transition.opacity class="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-slate-950/70 p-4 sm:p-8" @click.self="closeNews()" role="presentation">
         <article x-show="selectedNews" x-transition class="my-auto w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="home-news-title">

@@ -7,6 +7,7 @@ use App\Models\PumkBriRealization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Js;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -27,7 +28,13 @@ class PumkBriRealisasiTest extends TestCase
             ])
             ->assertSee('.pumk-bri-field input[type="file"].sr-only{position:absolute', false)
             ->assertSee('id="dokumen" name="dokumen" type="file" class="sr-only"', false)
-            ->assertSee('Tabel Rekapitulasi Anggaran &amp; Realisasi PUMK BRI', false);
+            ->assertSee('Tabel Rekapitulasi Anggaran &amp; Realisasi PUMK BRI', false)
+            ->assertSee('+ Update Periode Tahun')
+            ->assertSee('+ Update Realisasi')
+            ->assertSee('Jumlah Sudah Digunakan')
+            ->assertSee('Perhitungan Dana Tahunan PUMK BRI')
+            ->assertDontSee('(Rp.)')
+            ->assertDontSee('pumk-bri-panels', false);
 
         $this->get(route('pumk-admin.bri-planning.index'))->assertOk();
     }
@@ -80,6 +87,9 @@ class PumkBriRealisasiTest extends TestCase
             ->assertSee('2.000.000.000')
             ->assertSee('200.000.000')
             ->assertSee('10,00%')
+            ->assertSee('Jumlah Sudah Digunakan')
+            ->assertSee('200.000.000')
+            ->assertDontSee('(Rp.)')
             ->assertSee('✓')
             ->assertSee('Dokumen belum diunggah')
             ->assertSee(route('pumk-admin.umkm-binaan-bri.pumk-bri.documents.view', $documented), false);
@@ -106,6 +116,27 @@ class PumkBriRealisasiTest extends TestCase
             ->assertSee('0,00%')
             ->assertSee('aria-label="Persentase realisasi periode 2027"', false)
             ->assertSee('aria-label="Persentase realisasi keseluruhan"', false);
+    }
+
+    public function test_validation_errors_reopen_the_matching_update_modal(): void
+    {
+        $this->actingAs($this->pumkAdmin(), 'pumk');
+
+        $invalidForms = [
+            ['pumk-admin.umkm-binaan-bri.pumk-bri.period.store', 'period'],
+            ['pumk-admin.umkm-binaan-bri.pumk-bri.realization.store', 'realization'],
+            ['pumk-admin.umkm-binaan-bri.pumk-bri.annual-fund.store', 'annual'],
+        ];
+
+        foreach ($invalidForms as [$route, $modal]) {
+            $response = $this->from(route('pumk-admin.umkm-binaan-bri.pumk-bri.index'))
+                ->followingRedirects()
+                ->post(route($route), []);
+
+            $response->assertOk()
+                ->assertSee('activeModal: '.Js::from($modal)->toHtml(), false)
+                ->assertSee('role="dialog"', false);
+        }
     }
 
     private function pumkAdmin(): User

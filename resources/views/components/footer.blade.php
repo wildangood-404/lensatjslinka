@@ -18,7 +18,7 @@
         <div>
             <h2 class="mb-3 text-lg font-bold">RESOURCES</h2>
             <nav class="space-y-2 text-slate-200" aria-label="Navigasi footer">
-                <a class="block hover:text-white" href="{{ route('home') }}">Home</a>
+                <a class="block hover:text-white" href="{{ auth('web')->check() ? route('home') : route('entry') }}">Home</a>
                 <a class="block hover:text-white" href="{{ route('teras') }}">Teras TJSL</a>
                 <a class="block hover:text-white" href="{{ route('program.overview') }}">Program TJSL</a>
             </nav>

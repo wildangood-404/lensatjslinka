@@ -123,7 +123,7 @@ class PumkBriSnapshotParser
     public function sourceProfile(array $record): array
     {
         return array_intersect_key($record, array_flip([
-            'nama_mitra', 'alamat', 'wilayah', 'sektor_usaha', 'pinjaman', 'tenor_raw',
+            'nama_mitra', 'alamat', 'wilayah', 'sektor_usaha', 'pinjaman', 'tenor_raw', 'kode_unit',
         ]));
     }
 
@@ -131,7 +131,7 @@ class PumkBriSnapshotParser
     public function profileFingerprint(array $profile): string
     {
         $profile = array_intersect_key($profile, array_flip([
-            'nama_mitra', 'wilayah', 'sektor_usaha', 'pinjaman', 'tenor_raw',
+            'nama_mitra', 'wilayah', 'sektor_usaha', 'pinjaman', 'tenor_raw', 'kode_unit',
         ]));
         ksort($profile);
 

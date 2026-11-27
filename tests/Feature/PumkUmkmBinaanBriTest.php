@@ -4,6 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\PumkMitra;
 use App\Models\PumkPinjaman;
+use App\Models\PumkBriFasilitas;
+use App\Models\PumkBriMitra;
+use App\Models\PumkBriSnapshotBulanan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -21,6 +24,7 @@ class PumkUmkmBinaanBriTest extends TestCase
         $bri = $this->mitra('BRI Mitra', 'bri');
         $this->loan($regular);
         $this->loan($bri);
+        $this->snapshotMitra('Snapshot BRI Mitra', '2026-02-01', 800);
 
         $this->get(route('pumk-admin.umkm-binaan.index'))
             ->assertOk()
@@ -30,7 +34,8 @@ class PumkUmkmBinaanBriTest extends TestCase
             ->assertOk()
             ->assertSee('Daftar UMKM Binaan Via BRI')
             ->assertSee('+ Tambah UMKM Binaan Via BRI')
-            ->assertSee('BRI Mitra')
+            ->assertSee('Snapshot BRI Mitra')
+            ->assertSee('BRI Unit Madiun')
             ->assertDontSee('Regular Mitra');
 
         $this->get(route('pumk-admin.umkm-binaan.report-outstanding'))
@@ -74,9 +79,14 @@ class PumkUmkmBinaanBriTest extends TestCase
         $this->get(route('pumk-admin.umkm-binaan-bri.create'))
             ->assertOk()
             ->assertSee('Tambah UMKM Binaan Via BRI')
-            ->assertSee('action="'.route('pumk-admin.umkm-binaan-bri.store').'"', false)
-            ->assertSee('Import Excel (Input Massal)')
-            ->assertSee('Bermasalah');
+            ->assertSee('action="'.route('pumk-admin.umkm-binaan-bri.import').'"', false)
+            ->assertSee('name="bulan"', false)
+            ->assertSee('name="tahun"', false)
+            ->assertSee('accept=".xlsx,.xls,.csv"', false)
+            ->assertSee('Unduh Template Excel')
+            ->assertSee('Angsuran Bunga yang Diterima Giro')
+            ->assertDontSee('Input Manual')
+            ->assertDontSee('name="nama_mitra"', false);
 
         $this->post(route('pumk-admin.umkm-binaan-bri.store'), [
             'nama_mitra' => 'Mitra BRI Manual',
@@ -103,49 +113,61 @@ class PumkUmkmBinaanBriTest extends TestCase
             ->assertSee('Bermasalah')
             ->assertSee('umkm-status-badge is-critical', false);
 
-        $regularDuplicate = PumkMitra::create([
-            'nama_mitra' => 'Mitra BRI Import',
-            'kategori_binaan' => 'reguler',
-            'source_key' => (string) Str::uuid(),
-            'is_active' => true,
-        ]);
-        $this->loan($regularDuplicate);
         $csv = implode("\n", [
-            'UMKM Binaan,Alamat,Wilayah,Pemilik,Kontak,Sektor,Pencairan,Tahun,Kolektibilitas,Sisa Pinjaman (Pokok & Bunga),Sisa Pinjaman Pokok,Sisa Pinjaman Bunga,Denda,Status',
-            'Mitra BRI Import,Alamat usaha,Kota Madiun,Pemilik BRI,081234567890,Jasa,1.000.000,2026,Bermasalah,750.000,500.000,250.000,0,Aktif',
+            'Kode Unit,BRI Unit,Nama Mitra Binaan,Alamat,Provinsi,Kabupaten/ Kota,Sektor Ekonomi BUMN,Jangka Waktu,Tanggal Realisasi,Tanggal Jatuh Tempo,Jumlah Realisasi (Rp),Outstanding (Rp),Kolektabilitas BUMN,Tanggal Lunas,Jenis Usaha,Accrued Interest,Angsuran Bunga yang Diterima Giro',
+            '001,BRI Unit Madiun,Mitra BRI Import,Alamat usaha,Jawa Timur,Kota Madiun,Perdagangan,36 Bulan,15/01/2026,15/01/2029,1.000.000,750.000,Lancar,,Kuliner,10.000,5.000',
         ]);
         $this->post(route('pumk-admin.umkm-binaan-bri.import'), [
+            'bulan' => 1,
+            'tahun' => 2026,
             'import_file' => UploadedFile::fake()->createWithContent('mitra-bri.csv', $csv),
         ])->assertRedirect(route('pumk-admin.umkm-binaan-bri.create'))
-            ->assertSessionHas('import_result.imported', 1);
+            ->assertSessionHas('import_result.status', 'imported');
 
-        $this->assertDatabaseHas('pumk_mitra', [
-            'nama_mitra' => 'Mitra BRI Import',
-            'kategori_binaan' => 'bri',
-        ]);
-        $briImport = PumkMitra::query()
-            ->where('nama_mitra', 'Mitra BRI Import')
-            ->where('kategori_binaan', 'bri')
-            ->firstOrFail();
-        $this->assertDatabaseHas('pumk_pinjaman', [
+        $briImport = PumkBriMitra::query()->where('nama_mitra', 'Mitra BRI Import')->firstOrFail();
+        $this->assertDatabaseHas('pumk_bri_snapshot_bulanan', [
             'mitra_id' => $briImport->id,
-            'kolektibilitas' => 'bermasalah',
+            'bulan' => 1,
+            'tahun' => 2026,
+            'kode_unit' => '001',
+            'bri_unit' => 'BRI Unit Madiun',
+            'nama_mitra_binaan' => 'Mitra BRI Import',
+            'jumlah_realisasi' => 1000000,
+            'outstanding' => 750000,
+            'accrued_interest' => 10000,
+            'angsuran_bunga_diterima_giro' => 5000,
         ]);
-        $this->get(route('pumk-admin.umkm-binaan.index'))
-            ->assertViewHas('mitraList', fn ($list): bool => $list->contains('id', $regularDuplicate->id)
-                && ! $list->contains('id', $briImport->id));
-        $this->get(route('pumk-admin.umkm-binaan-bri.index'))
-            ->assertViewHas('mitraList', fn ($list): bool => $list->contains('id', $briImport->id)
-                && ! $list->contains('id', $regularDuplicate->id));
-        $this->get(route('pumk-admin.umkm-binaan-bri.index', ['kolektibilitas' => 'bermasalah']))
-            ->assertOk()
-            ->assertSee('Mitra BRI Manual')
+        $listResponse = $this->get(route('pumk-admin.umkm-binaan-bri.index'));
+        $listResponse
+            ->assertViewHas('mitraList', fn ($list): bool => $list->contains('id', $briImport->id))
             ->assertSee('Mitra BRI Import')
-            ->assertSee('value="bermasalah" selected', false);
+            ->assertDontSee('Status Pinjaman')
+            ->assertDontSee('Edit Arsip')
+            ->assertDontSee(route('pumk-admin.umkm-binaan-bri.edit', $briImport->id), false);
+        preg_match_all('/<th\b/', $listResponse->getContent(), $tableHeaders);
+        $this->assertCount(7, $tableHeaders[0]);
+        $this->get(route('pumk-admin.umkm-binaan-bri.index', ['bulan' => 1, 'tahun' => 2026]))
+            ->assertOk()
+            ->assertSee('value="1" selected', false)
+            ->assertSee('value="2026" selected', false);
+        $profileResponse = $this->get(route('pumk-admin.umkm-binaan-bri.snapshot.show', [
+            'mitra' => $briImport->id,
+            'bulan' => 1,
+            'tahun' => 2026,
+        ]))->assertOk()
+            ->assertSee('Riwayat Perbandingan Bulanan');
+        foreach ([
+            'Kode Unit', 'BRI Unit', 'Nama Mitra Binaan', 'Alamat', 'Provinsi', 'Kabupaten/Kota',
+            'Sektor Ekonomi BUMN', 'Jenis Usaha', 'Jangka Waktu', 'Tanggal Realisasi',
+            'Tanggal Jatuh Tempo', 'Jumlah Realisasi', 'Outstanding', 'Kolektabilitas BUMN',
+            'Tanggal Lunas', 'Accrued Interest', 'Angsuran Bunga yang Diterima Giro',
+        ] as $fieldLabel) {
+            $profileResponse->assertSee($fieldLabel);
+        }
         $this->get(route('pumk-admin.umkm-binaan-bri.report-outstanding'))
-            ->assertViewHas('qualityRows', fn (array $rows): bool => $rows[4]['label'] === 'Bermasalah'
-                && $rows[4]['mitra_count'] === 2)
-            ->assertViewHas('regionTotal', fn (array $total): bool => $total['problem_count'] === 2);
+            ->assertViewHas('regionTotal', fn (array $total): bool => $total['mitra_count'] === 1
+                && $total['realization'] === '1000000.00'
+                && $total['outstanding'] === '750000.00');
     }
 
     public function test_sidebar_replaces_upload_monitoring_with_bri_dropdown(): void
@@ -217,5 +239,37 @@ class PumkUmkmBinaanBriTest extends TestCase
                 ],
             ],
         ]);
+    }
+
+    private function snapshotMitra(string $name, string $period, int $outstanding): PumkBriMitra
+    {
+        $mitra = PumkBriMitra::create([
+            'nama_mitra' => $name,
+            'source_key' => hash('sha256', $name),
+        ]);
+        $facility = PumkBriFasilitas::create([
+            'mitra_id' => $mitra->id,
+            'reference_key' => (string) Str::uuid(),
+        ]);
+        $date = \Illuminate\Support\Carbon::parse($period);
+        PumkBriSnapshotBulanan::create([
+            'mitra_id' => $mitra->id,
+            'fasilitas_id' => $facility->id,
+            'bulan' => $date->month,
+            'tahun' => $date->year,
+            'saldo_piutang' => $outstanding,
+            'kolektibilitas_kode' => 'L',
+            'kolektibilitas_label' => 'Lancar',
+            'source_sheet' => 'test',
+            'source_row' => 2,
+            'nama_mitra_sumber' => $name,
+            'nama_mitra_binaan' => $name,
+            'bri_unit' => 'BRI Unit Madiun',
+            'kabupaten_kota' => 'Kota Madiun',
+            'outstanding' => $outstanding,
+            'kolektibilitas_bumn' => 'Lancar',
+        ]);
+
+        return $mitra;
     }
 }

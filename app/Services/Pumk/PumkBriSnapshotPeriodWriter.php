@@ -26,6 +26,7 @@ class PumkBriSnapshotPeriodWriter
     ): void {
         DB::transaction(function () use ($sheetName, $month, $year, $records, $replacePeriod): void {
             $facilities = PumkBriFasilitas::query()->with('snapshots')->get();
+            /** @var list<array{record: array<string, mixed>, facility: PumkBriFasilitas|null, mitra: PumkBriMitra|null, resolution: PumkBriIdentityReview|null}> $planned */
             $planned = [];
             $newProfiles = [];
             $reviews = [];
@@ -168,10 +169,27 @@ class PumkBriSnapshotPeriodWriter
                         'sektor_usaha_sumber' => $record['sektor_usaha'],
                         'pinjaman_sumber' => $record['pinjaman'],
                         'tenor_sumber' => $record['tenor_raw'],
-                        'tanggal_pencairan_sumber' => null,
-                        'tanggal_jatuh_tempo_sumber' => null,
+                        'tanggal_pencairan_sumber' => $record['tanggal_pencairan_sumber'] ?? null,
+                        'tanggal_jatuh_tempo_sumber' => $record['tanggal_jatuh_tempo_sumber'] ?? null,
                         'profil_sumber_terverifikasi' => true,
                         'source_payload' => $record['source_payload'],
+                        'kode_unit' => $record['kode_unit'] ?? null,
+                        'bri_unit' => $record['bri_unit'] ?? null,
+                        'nama_mitra_binaan' => $record['nama_mitra'],
+                        'alamat' => $record['alamat'],
+                        'provinsi' => $record['provinsi'] ?? null,
+                        'kabupaten_kota' => $record['kabupaten_kota'] ?? $record['wilayah'],
+                        'sektor_ekonomi_bumn' => $record['sektor_ekonomi_bumn'] ?? $record['sektor_usaha'],
+                        'jangka_waktu' => $record['tenor_raw'],
+                        'tanggal_realisasi' => $record['tanggal_pencairan_sumber'] ?? null,
+                        'tanggal_jatuh_tempo' => $record['tanggal_jatuh_tempo_sumber'] ?? null,
+                        'jumlah_realisasi' => $record['pinjaman'],
+                        'outstanding' => $record['saldo_piutang'],
+                        'kolektibilitas_bumn' => $record['kolektibilitas_label'],
+                        'tanggal_lunas' => $record['tanggal_lunas'] ?? null,
+                        'jenis_usaha' => $record['jenis_usaha'] ?? null,
+                        'accrued_interest' => $record['accrued_interest'] ?? null,
+                        'angsuran_bunga_diterima_giro' => $record['angsuran_bunga_diterima_giro'] ?? null,
                     ],
                 );
             }

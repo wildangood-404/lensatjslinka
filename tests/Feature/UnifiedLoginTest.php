@@ -25,10 +25,10 @@ class UnifiedLoginTest extends TestCase
         ], $attributes));
     }
 
-    public function test_all_entry_aliases_offer_the_same_form(): void
+    public function test_login_entry_points_open_the_homepage_modal(): void
     {
-        $this->get('/')->assertOk()->assertSee('Masuk / Login');
-        $this->get(route('login'))->assertOk()->assertSee('action="'.route('login.store').'"', false);
+        $this->get('/')->assertOk()->assertSee('Login');
+        $this->get(route('login'))->assertRedirect(route('entry', ['login' => 1]));
 
         foreach (['admin.login', 'superadmin.login', 'pumk-admin.login'] as $route) {
             $this->get(route($route))->assertRedirect(route('login'));
@@ -56,7 +56,7 @@ class UnifiedLoginTest extends TestCase
             $this->get(route($dashboard))->assertOk()
                 ->assertSee('News &amp; Kegiatan TJSL', false)
                 ->assertSee('Grafik &amp; Capaian', false);
-            $this->get('/')->assertOk()->assertSee('Masuk / Login');
+            $this->get('/')->assertOk()->assertSee('Login');
             $this->get(route('login'))->assertRedirect(route($dashboard));
 
             $this->post(route('public.logout'))->assertRedirect(route('login'));
@@ -297,7 +297,7 @@ class UnifiedLoginTest extends TestCase
         $this->app->bind(PreventRequestForgery::class, StrictCsrfForUnifiedLoginTest::class);
         $account = $this->account('admin', 'csrf-account');
 
-        $this->get(route('login'))->assertOk();
+        $this->get(route('login'))->assertRedirect(route('entry', ['login' => 1]));
         $this->post(route('login.store'), [
             'username' => $account->username,
             'password' => 'ExamplePassword2026',

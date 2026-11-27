@@ -7,7 +7,6 @@ use App\Services\Auth\LoginDestination;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
 
 class PublicAuthController extends Controller
 {
@@ -18,14 +17,13 @@ class PublicAuthController extends Controller
         return redirect()->route($user ? $destination->routeFor($user) ?? 'login' : 'login');
     }
 
-    public function showLogin(LoginDestination $destination): View|RedirectResponse
+    public function showLogin(LoginDestination $destination): RedirectResponse
     {
         $user = Auth::guard('web')->user();
-        if ($user !== null) {
-            return redirect()->route($destination->routeFor($user) ?? 'login');
-        }
 
-        return view('pages.login');
+        return $user !== null
+            ? redirect()->route($destination->routeFor($user) ?? 'login')
+            : redirect()->route('entry', ['login' => 1]);
     }
 
     public function login(Request $request, LoginAttemptLimiter $limiter, LoginDestination $destination): RedirectResponse

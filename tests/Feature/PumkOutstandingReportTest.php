@@ -4,6 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\PumkMitra;
 use App\Models\PumkPinjaman;
+use App\Models\PumkBriFasilitas;
+use App\Models\PumkBriMitra;
+use App\Models\PumkBriSnapshotBulanan;
 use App\Models\PumkSektorUsaha;
 use App\Models\PumkWilayah;
 use App\Services\Pumk\PumkLoanSnapshotService;
@@ -66,38 +69,94 @@ class PumkOutstandingReportTest extends TestCase
             && $total['principal'] === '2860.00');
     }
 
-    public function test_bermasalah_is_fifth_quality_bucket_and_counts_as_problematic_for_both_sources(): void
+    public function test_bri_report_uses_latest_snapshot_period_and_aggregates_all_five_column_tables(): void
+    {
+        $this->actingAs($this->pumkAdmin(), 'pumk');
+
+        $first = $this->briSnapshot('Mitra BRI A', 'BRI Unit Madiun', 'Perdagangan', 'Lancar', 100, 50, 1, 2026);
+        $this->briSnapshot('Mitra BRI A', 'BRI Unit Madiun', 'Perdagangan', 'Lancar', 1000, 800, 2, 2026, $first);
+        $this->briSnapshot('Mitra BRI A', 'BRI Unit Madiun', 'Perdagangan', 'Macet', 500, 200, 2, 2026, $first);
+        $this->briSnapshot('Mitra BRI B', 'BRI Unit Madiun', 'Perdagangan', 'Kurang Lancar', 2000, 1200, 2, 2026);
+        $this->briSnapshot('Mitra BRI C', 'BRI Unit Ngawi', 'Pertanian', 'Diragukan', 3000, 1500, 2, 2026);
+
+        $region = PumkWilayah::create(['nama' => 'Wilayah Legacy', 'slug' => 'wilayah-legacy']);
+        $sector = PumkSektorUsaha::create(['nama' => 'Sektor Legacy', 'slug' => 'sektor-legacy']);
+        $legacyMitra = $this->mitra('Mitra BRI Lama', $region, $sector, 'bri');
+        $this->problematicLoan($legacyMitra);
+
+        $response = $this->get(route('pumk-admin.umkm-binaan-bri.report-outstanding'));
+        $response->assertOk()
+            ->assertSee('Februari 2026')
+            ->assertSee('Wilayah (KC BRI)')
+            ->assertSee('Nilai Realisasi (Penyaluran)')
+            ->assertSee('BRI Unit Madiun')
+            ->assertSee('Perdagangan')
+            ->assertDontSee('Mitra BRI Lama')
+            ->assertDontSee('Bermasalah');
+
+        preg_match_all('/<th\b/', $response->getContent(), $headers);
+        $this->assertCount(15, $headers[0]);
+
+        $response->assertViewHas('regionRows', function (array $rows): bool {
+            $madiun = collect($rows)->firstWhere('label', 'BRI Unit Madiun');
+
+            return $madiun['mitra_count'] === 2
+                && $madiun['realization'] === '3500.00'
+                && $madiun['outstanding'] === '2200.00';
+        });
+        $response->assertViewHas('sectorRows', function (array $rows): bool {
+            $trade = collect($rows)->firstWhere('label', 'Perdagangan');
+
+            return $trade['mitra_count'] === 2
+                && $trade['realization'] === '3500.00'
+                && $trade['outstanding'] === '2200.00';
+        });
+        $response->assertViewHas('regionTotal', fn (array $total): bool => $total['mitra_count'] === 3
+            && $total['realization'] === '6500.00'
+            && $total['outstanding'] === '3700.00');
+        $response->assertViewHas('qualityRows', fn (array $rows): bool => array_column($rows, 'label') === [
+            'Lancar', 'Kurang Lancar', 'Diragukan', 'Macet',
+        ] && array_column($rows, 'mitra_count') === [1, 1, 1, 1]
+            && array_column($rows, 'realization') === ['1000.00', '2000.00', '3000.00', '500.00']);
+        $response->assertViewHas('qualityTotal', fn (array $total): bool => $total['mitra_count'] === 4
+            && $total['realization'] === '6500.00'
+            && $total['outstanding'] === '3700.00');
+
+        $this->get(route('pumk-admin.umkm-binaan-bri.report-outstanding', [
+            'bulan' => 1,
+            'tahun' => 2026,
+        ]))->assertOk()
+            ->assertSee('Januari 2026')
+            ->assertViewHas('regionTotal', fn (array $total): bool => $total['mitra_count'] === 1
+                && $total['realization'] === '100.00'
+                && $total['outstanding'] === '50.00');
+    }
+
+    public function test_bermasalah_remains_a_quality_bucket_for_regular_outstanding_reports(): void
     {
         $this->actingAs($this->pumkAdmin(), 'pumk');
 
         $region = PumkWilayah::create(['nama' => 'Wilayah Bermasalah', 'slug' => 'wilayah-bermasalah']);
         $sector = PumkSektorUsaha::create(['nama' => 'Sektor Bermasalah', 'slug' => 'sektor-bermasalah']);
         $regular = $this->mitra('Mitra Bermasalah Reguler', $region, $sector);
-        $bri = $this->mitra('Mitra Bermasalah BRI', $region, $sector, 'bri');
         $this->problematicLoan($regular);
-        $this->problematicLoan($bri);
 
-        foreach ([
-            'pumk-admin.umkm-binaan.report-outstanding',
-            'pumk-admin.umkm-binaan-bri.report-outstanding',
-        ] as $route) {
-            $this->get(route($route))
-                ->assertOk()
-                ->assertSee('Bermasalah')
-                ->assertSee('quality-badge is-bermasalah', false)
-                ->assertViewHas('qualityRows', fn (array $rows): bool => array_column($rows, 'label') === [
-                    'Lancar', 'Kurang Lancar', 'Diragukan', 'Macet', 'Bermasalah',
-                ] && $rows[4]['mitra_count'] === 1
-                    && $rows[4]['principal'] === '1000.00'
-                    && $rows[4]['interest'] === '100.00')
-                ->assertViewHas('qualityTotal', fn (array $total): bool => $total['mitra_count'] === 1
-                    && $total['principal'] === '1000.00')
-                ->assertViewHas('regionTotal', fn (array $total): bool => $total['problem_count'] === 1
-                    && $total['problem_principal'] === '1000.00'
-                    && $total['problem_interest'] === '100.00')
-                ->assertViewHas('sectorTotal', fn (array $total): bool => $total['problem_count'] === 1
-                    && $total['problem_principal'] === '1000.00');
-        }
+        $this->get(route('pumk-admin.umkm-binaan.report-outstanding'))
+            ->assertOk()
+            ->assertSee('Bermasalah')
+            ->assertSee('quality-badge is-bermasalah', false)
+            ->assertViewHas('qualityRows', fn (array $rows): bool => array_column($rows, 'label') === [
+                'Lancar', 'Kurang Lancar', 'Diragukan', 'Macet', 'Bermasalah',
+            ] && $rows[4]['mitra_count'] === 1
+                && $rows[4]['principal'] === '1000.00'
+                && $rows[4]['interest'] === '100.00')
+            ->assertViewHas('qualityTotal', fn (array $total): bool => $total['mitra_count'] === 1
+                && $total['principal'] === '1000.00')
+            ->assertViewHas('regionTotal', fn (array $total): bool => $total['problem_count'] === 1
+                && $total['problem_principal'] === '1000.00'
+                && $total['problem_interest'] === '100.00')
+            ->assertViewHas('sectorTotal', fn (array $total): bool => $total['problem_count'] === 1
+                && $total['problem_principal'] === '1000.00');
     }
 
     public function test_umkm_binaan_list_alias_preserves_existing_mitra_route_and_dashboard_links(): void
@@ -237,5 +296,53 @@ class PumkOutstandingReportTest extends TestCase
         ]);
 
         return $loan;
+    }
+
+    private function briSnapshot(
+        string $mitraName,
+        string $unit,
+        string $sector,
+        string $quality,
+        int $realization,
+        int $outstanding,
+        int $month,
+        int $year,
+        ?PumkBriMitra $mitra = null,
+    ): PumkBriMitra {
+        $mitra ??= PumkBriMitra::create([
+            'nama_mitra' => $mitraName,
+            'source_key' => hash('sha256', $mitraName),
+        ]);
+        $facility = PumkBriFasilitas::create([
+            'mitra_id' => $mitra->id,
+            'reference_key' => (string) Str::uuid(),
+        ]);
+        $qualityCode = match ($quality) {
+            'Lancar' => 'L',
+            'Kurang Lancar' => 'KL',
+            'Diragukan' => 'D',
+            'Macet' => 'M',
+        };
+        PumkBriSnapshotBulanan::create([
+            'mitra_id' => $mitra->id,
+            'fasilitas_id' => $facility->id,
+            'bulan' => $month,
+            'tahun' => $year,
+            'saldo_piutang' => $outstanding,
+            'kolektibilitas_kode' => $qualityCode,
+            'kolektibilitas_label' => $quality,
+            'source_sheet' => 'test',
+            'source_row' => 2,
+            'nama_mitra_binaan' => $mitraName,
+            'bri_unit' => $unit,
+            'provinsi' => 'Jawa Timur',
+            'kabupaten_kota' => $unit === 'BRI Unit Ngawi' ? 'Ngawi' : 'Kota Madiun',
+            'sektor_ekonomi_bumn' => $sector,
+            'jumlah_realisasi' => $realization,
+            'outstanding' => $outstanding,
+            'kolektibilitas_bumn' => $quality,
+        ]);
+
+        return $mitra;
     }
 }
